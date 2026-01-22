@@ -1,0 +1,45 @@
+# Environment variables
+.env
+.env.local
+
+# n8n data
+n8n-data/
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+.DS_Store
+*.swp
+*.swo
+*~.nib
+DerivedData/
+build/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+*.xcuserdatad/
+
+# Swift Package Manager
+.swiftpm/
+.build/
+Packages/
+Package.resolved
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# API Keys (安全性)
+**/credentials.json
+**/*_key.json
+**/*.pem
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp

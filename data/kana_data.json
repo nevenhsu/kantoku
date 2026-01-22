@@ -1,0 +1,267 @@
+{
+  "metadata": {
+    "description": "平假名完整資料（清音46 + 濁音25 + 拗音36 = 107音）",
+    "version": "1.0",
+    "total_kana": 107,
+    "categories": ["seion", "dakuten", "youon"]
+  },
+  "kana": [
+    {
+      "category": "seion",
+      "category_name": "清音",
+      "total": 46,
+      "rows": [
+        {
+          "row": "あ行",
+          "stage_id": 1,
+          "characters": [
+            {"kana": "あ", "romaji": "a", "type": "hiragana"},
+            {"kana": "い", "romaji": "i", "type": "hiragana"},
+            {"kana": "う", "romaji": "u", "type": "hiragana"},
+            {"kana": "え", "romaji": "e", "type": "hiragana"},
+            {"kana": "お", "romaji": "o", "type": "hiragana"}
+          ]
+        },
+        {
+          "row": "か行",
+          "stage_id": 2,
+          "characters": [
+            {"kana": "か", "romaji": "ka", "type": "hiragana"},
+            {"kana": "き", "romaji": "ki", "type": "hiragana"},
+            {"kana": "く", "romaji": "ku", "type": "hiragana"},
+            {"kana": "け", "romaji": "ke", "type": "hiragana"},
+            {"kana": "こ", "romaji": "ko", "type": "hiragana"}
+          ]
+        },
+        {
+          "row": "さ行",
+          "stage_id": 3,
+          "characters": [
+            {"kana": "さ", "romaji": "sa", "type": "hiragana"},
+            {"kana": "し", "romaji": "shi", "type": "hiragana"},
+            {"kana": "す", "romaji": "su", "type": "hiragana"},
+            {"kana": "せ", "romaji": "se", "type": "hiragana"},
+            {"kana": "そ", "romaji": "so", "type": "hiragana"}
+          ]
+        },
+        {
+          "row": "た行",
+          "stage_id": 4,
+          "characters": [
+            {"kana": "た", "romaji": "ta", "type": "hiragana"},
+            {"kana": "ち", "romaji": "chi", "type": "hiragana"},
+            {"kana": "つ", "romaji": "tsu", "type": "hiragana"},
+            {"kana": "て", "romaji": "te", "type": "hiragana"},
+            {"kana": "と", "romaji": "to", "type": "hiragana"}
+          ]
+        },
+        {
+          "row": "な行",
+          "stage_id": 5,
+          "characters": [
+            {"kana": "な", "romaji": "na", "type": "hiragana"},
+            {"kana": "に", "romaji": "ni", "type": "hiragana"},
+            {"kana": "ぬ", "romaji": "nu", "type": "hiragana"},
+            {"kana": "ね", "romaji": "ne", "type": "hiragana"},
+            {"kana": "の", "romaji": "no", "type": "hiragana"}
+          ]
+        },
+        {
+          "row": "は行",
+          "stage_id": 6,
+          "characters": [
+            {"kana": "は", "romaji": "ha", "type": "hiragana"},
+            {"kana": "ひ", "romaji": "hi", "type": "hiragana"},
+            {"kana": "ふ", "romaji": "fu", "type": "hiragana"},
+            {"kana": "へ", "romaji": "he", "type": "hiragana"},
+            {"kana": "ほ", "romaji": "ho", "type": "hiragana"}
+          ]
+        },
+        {
+          "row": "ま行",
+          "stage_id": 7,
+          "characters": [
+            {"kana": "ま", "romaji": "ma", "type": "hiragana"},
+            {"kana": "み", "romaji": "mi", "type": "hiragana"},
+            {"kana": "む", "romaji": "mu", "type": "hiragana"},
+            {"kana": "め", "romaji": "me", "type": "hiragana"},
+            {"kana": "も", "romaji": "mo", "type": "hiragana"}
+          ]
+        },
+        {
+          "row": "や行",
+          "stage_id": 8,
+          "characters": [
+            {"kana": "や", "romaji": "ya", "type": "hiragana"},
+            {"kana": "ゆ", "romaji": "yu", "type": "hiragana"},
+            {"kana": "よ", "romaji": "yo", "type": "hiragana"}
+          ]
+        },
+        {
+          "row": "ら行",
+          "stage_id": 9,
+          "characters": [
+            {"kana": "ら", "romaji": "ra", "type": "hiragana"},
+            {"kana": "り", "romaji": "ri", "type": "hiragana"},
+            {"kana": "る", "romaji": "ru", "type": "hiragana"},
+            {"kana": "れ", "romaji": "re", "type": "hiragana"},
+            {"kana": "ろ", "romaji": "ro", "type": "hiragana"}
+          ]
+        },
+        {
+          "row": "わ行",
+          "stage_id": 10,
+          "characters": [
+            {"kana": "わ", "romaji": "wa", "type": "hiragana"},
+            {"kana": "を", "romaji": "wo", "type": "hiragana"},
+            {"kana": "ん", "romaji": "n", "type": "hiragana"}
+          ]
+        }
+      ]
+    },
+    {
+      "category": "dakuten",
+      "category_name": "濁音/半濁音",
+      "total": 25,
+      "rows": [
+        {
+          "row": "が行",
+          "stage_id": 11,
+          "characters": [
+            {"kana": "が", "romaji": "ga", "type": "hiragana", "base": "か"},
+            {"kana": "ぎ", "romaji": "gi", "type": "hiragana", "base": "き"},
+            {"kana": "ぐ", "romaji": "gu", "type": "hiragana", "base": "く"},
+            {"kana": "げ", "romaji": "ge", "type": "hiragana", "base": "け"},
+            {"kana": "ご", "romaji": "go", "type": "hiragana", "base": "こ"}
+          ]
+        },
+        {
+          "row": "ざ行",
+          "stage_id": 12,
+          "characters": [
+            {"kana": "ざ", "romaji": "za", "type": "hiragana", "base": "さ"},
+            {"kana": "じ", "romaji": "ji", "type": "hiragana", "base": "し"},
+            {"kana": "ず", "romaji": "zu", "type": "hiragana", "base": "す"},
+            {"kana": "ぜ", "romaji": "ze", "type": "hiragana", "base": "せ"},
+            {"kana": "ぞ", "romaji": "zo", "type": "hiragana", "base": "そ"}
+          ]
+        },
+        {
+          "row": "だ行",
+          "stage_id": 13,
+          "characters": [
+            {"kana": "だ", "romaji": "da", "type": "hiragana", "base": "た"},
+            {"kana": "ぢ", "romaji": "ji", "type": "hiragana", "base": "ち"},
+            {"kana": "づ", "romaji": "zu", "type": "hiragana", "base": "つ"},
+            {"kana": "で", "romaji": "de", "type": "hiragana", "base": "て"},
+            {"kana": "ど", "romaji": "do", "type": "hiragana", "base": "と"}
+          ]
+        },
+        {
+          "row": "ば行",
+          "stage_id": 14,
+          "characters": [
+            {"kana": "ば", "romaji": "ba", "type": "hiragana", "base": "は"},
+            {"kana": "び", "romaji": "bi", "type": "hiragana", "base": "ひ"},
+            {"kana": "ぶ", "romaji": "bu", "type": "hiragana", "base": "ふ"},
+            {"kana": "べ", "romaji": "be", "type": "hiragana", "base": "へ"},
+            {"kana": "ぼ", "romaji": "bo", "type": "hiragana", "base": "ほ"}
+          ]
+        },
+        {
+          "row": "ぱ行",
+          "stage_id": 15,
+          "characters": [
+            {"kana": "ぱ", "romaji": "pa", "type": "hiragana", "base": "は"},
+            {"kana": "ぴ", "romaji": "pi", "type": "hiragana", "base": "ひ"},
+            {"kana": "ぷ", "romaji": "pu", "type": "hiragana", "base": "ふ"},
+            {"kana": "ぺ", "romaji": "pe", "type": "hiragana", "base": "へ"},
+            {"kana": "ぽ", "romaji": "po", "type": "hiragana", "base": "ほ"}
+          ]
+        }
+      ]
+    },
+    {
+      "category": "youon",
+      "category_name": "拗音",
+      "total": 36,
+      "rows": [
+        {
+          "row": "きゃ系",
+          "stage_id": 16,
+          "characters": [
+            {"kana": "きゃ", "romaji": "kya", "type": "hiragana", "components": ["き", "や"]},
+            {"kana": "きゅ", "romaji": "kyu", "type": "hiragana", "components": ["き", "ゆ"]},
+            {"kana": "きょ", "romaji": "kyo", "type": "hiragana", "components": ["き", "よ"]},
+            {"kana": "ぎゃ", "romaji": "gya", "type": "hiragana", "components": ["ぎ", "や"]},
+            {"kana": "ぎゅ", "romaji": "gyu", "type": "hiragana", "components": ["ぎ", "ゆ"]},
+            {"kana": "ぎょ", "romaji": "gyo", "type": "hiragana", "components": ["ぎ", "よ"]}
+          ]
+        },
+        {
+          "row": "しゃ系",
+          "stage_id": 17,
+          "characters": [
+            {"kana": "しゃ", "romaji": "sha", "type": "hiragana", "components": ["し", "や"]},
+            {"kana": "しゅ", "romaji": "shu", "type": "hiragana", "components": ["し", "ゆ"]},
+            {"kana": "しょ", "romaji": "sho", "type": "hiragana", "components": ["し", "よ"]},
+            {"kana": "じゃ", "romaji": "ja", "type": "hiragana", "components": ["じ", "や"]},
+            {"kana": "じゅ", "romaji": "ju", "type": "hiragana", "components": ["じ", "ゆ"]},
+            {"kana": "じょ", "romaji": "jo", "type": "hiragana", "components": ["じ", "よ"]}
+          ]
+        },
+        {
+          "row": "ちゃ系",
+          "stage_id": 18,
+          "characters": [
+            {"kana": "ちゃ", "romaji": "cha", "type": "hiragana", "components": ["ち", "や"]},
+            {"kana": "ちゅ", "romaji": "chu", "type": "hiragana", "components": ["ち", "ゆ"]},
+            {"kana": "ちょ", "romaji": "cho", "type": "hiragana", "components": ["ち", "よ"]}
+          ]
+        },
+        {
+          "row": "にゃ系",
+          "stage_id": 19,
+          "characters": [
+            {"kana": "にゃ", "romaji": "nya", "type": "hiragana", "components": ["に", "や"]},
+            {"kana": "にゅ", "romaji": "nyu", "type": "hiragana", "components": ["に", "ゆ"]},
+            {"kana": "にょ", "romaji": "nyo", "type": "hiragana", "components": ["に", "よ"]}
+          ]
+        },
+        {
+          "row": "ひゃ系",
+          "stage_id": 20,
+          "characters": [
+            {"kana": "ひゃ", "romaji": "hya", "type": "hiragana", "components": ["ひ", "や"]},
+            {"kana": "ひゅ", "romaji": "hyu", "type": "hiragana", "components": ["ひ", "ゆ"]},
+            {"kana": "ひょ", "romaji": "hyo", "type": "hiragana", "components": ["ひ", "よ"]},
+            {"kana": "びゃ", "romaji": "bya", "type": "hiragana", "components": ["び", "や"]},
+            {"kana": "びゅ", "romaji": "byu", "type": "hiragana", "components": ["び", "ゆ"]},
+            {"kana": "びょ", "romaji": "byo", "type": "hiragana", "components": ["び", "よ"]},
+            {"kana": "ぴゃ", "romaji": "pya", "type": "hiragana", "components": ["ぴ", "や"]},
+            {"kana": "ぴゅ", "romaji": "pyu", "type": "hiragana", "components": ["ぴ", "ゆ"]},
+            {"kana": "ぴょ", "romaji": "pyo", "type": "hiragana", "components": ["ぴ", "よ"]}
+          ]
+        },
+        {
+          "row": "みゃ系",
+          "stage_id": 21,
+          "characters": [
+            {"kana": "みゃ", "romaji": "mya", "type": "hiragana", "components": ["み", "や"]},
+            {"kana": "みゅ", "romaji": "myu", "type": "hiragana", "components": ["み", "ゆ"]},
+            {"kana": "みょ", "romaji": "myo", "type": "hiragana", "components": ["み", "よ"]}
+          ]
+        },
+        {
+          "row": "りゃ系",
+          "stage_id": 22,
+          "characters": [
+            {"kana": "りゃ", "romaji": "rya", "type": "hiragana", "components": ["り", "や"]},
+            {"kana": "りゅ", "romaji": "ryu", "type": "hiragana", "components": ["り", "ゆ"]},
+            {"kana": "りょ", "romaji": "ryo", "type": "hiragana", "components": ["り", "よ"]}
+          ]
+        }
+      ]
+    }
+  ]
+}
