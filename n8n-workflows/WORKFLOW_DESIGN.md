@@ -319,7 +319,11 @@ RETURNING id, task_type, content, status, due_date;
 
 ---
 
-## ✅ Workflow 2: 提交審核（review-submission）
+## ✅ Workflow 2: 提交審核（review-submission）⏳ 進行中
+
+> **開始日期**: 2026-01-23  
+> **狀態**: ⏳ Phase 1-3 完成（50%）  
+> **Webhook URL**: `http://localhost:5678/webhook/review-submission`
 
 ### 目的
 處理使用者提交的任務，支援**文字輸入**和**直接確認**兩種方式。

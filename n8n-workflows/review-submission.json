@@ -1,0 +1,289 @@
+{
+  "name": "review-submission",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "review-submission",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e25eae71-0872-49e0-a18d-dbc31f813059",
+      "name": "Webhook",
+      "webhookId": "f8885bc4-7161-454c-8b8d-ca78f91b8ec1"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1232,
+        -32
+      ],
+      "id": "9052660f-19d4-43f8-89f0-46e115f482e6",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Webhook').item.json.body.submission_type }}",
+                    "rightValue": "direct_confirm",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "0b343ee0-fb75-4443-8a5a-e7fbfb3ad393"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "direct_confirm"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "f260d85c-ef7f-44eb-8582-170755b74806",
+                    "leftValue": "={{ $('Webhook').item.json.body.submission_type }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "c62e0236-d2ea-4021-875b-4cc14a459a58",
+      "name": "Switch - Submission Type"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    passed: true,\n    score: 100,\n    ai_feedback: {\n      message: '使用者確認已完成',\n      feedback: '直接確認通過',\n      type: 'direct_confirm'\n    }\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        -96
+      ],
+      "id": "93486669-64fc-47e0-b29b-c9530c03bad8",
+      "name": "Code - Direct Confirm"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        688,
+        256
+      ],
+      "id": "51b4b966-5c36-4768-bf08-f9ba67ce83cd",
+      "name": "Gemini - Review Answer Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "A0Ms6dosk71b24xr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是日文學習審核 AI。請審核以下答案是否正確。\n\n任務類型：{{ $('Query - Task Details').item.json.task_type }}\n任務內容：{{ $('Query - Task Details').item.json.content }}\n使用者答案：{{ $('Webhook').item.json.body.content }}\n\n請以 JSON 格式回答（只回傳 JSON，不要其他文字）：\n{\n  \"passed\": true 或 false,\n  \"score\": 0-100 的數字,\n  \"feedback\": \"詳細回饋\",\n  \"correct_answer\": \"正確答案（如果錯誤才需要）\"\n}\n\n審核標準：\n- 假名學習（kana_learn）：羅馬拼音完全正確即通過，score=100\n- 假名複習（kana_review）：羅馬拼音完全正確即通過，score=100\n- 大小寫不敏感（a 和 A 都算正確）\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        688,
+        48
+      ],
+      "id": "68b28f7f-af04-4186-8194-bda23608d06b",
+      "name": "Gemini - Review Answer"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\n// Gemini 回應可能在不同位置，嘗試取得文字\nlet text = '';\nif (response.text) {\n  text = response.text;\n} else if (response.output) {\n  text = response.output;\n} else if (response.content) {\n  text = response.content;\n} else {\n  text = JSON.stringify(response);\n}\n\n// 提取 JSON\ntry {\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const result = JSON.parse(jsonMatch[0]);\n    return [{\n      json: {\n        passed: result.passed === true,\n        score: result.score || (result.passed ? 100 : 0),\n        ai_feedback: {\n          feedback: result.feedback || '',\n          correct_answer: result.correct_answer || null,\n          type: 'ai_review'\n        }\n      }\n    }];\n  }\n} catch (e) {\n  // 解析失敗\n}\n\n// 無法解析，預設為失敗\nreturn [{\n  json: {\n    passed: false,\n    score: 0,\n    ai_feedback: {\n      feedback: '無法解析 AI 回應',\n      correct_answer: null,\n      type: 'ai_review_error'\n    }\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        48
+      ],
+      "id": "c09f369e-6788-42c8-a380-7980e0081e87",
+      "name": "Code - Parse AI Response"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "tasks",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.body.task_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "147e1371-c34c-4b67-89af-dbc1c77ea04a",
+      "name": "Query - Task Details",
+      "credentials": {
+        "supabaseApi": {
+          "id": "RculhUeb6L26Iaph",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Query - Task Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Submission Type": {
+      "main": [
+        [
+          {
+            "node": "Code - Direct Confirm",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini - Review Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Direct Confirm": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Review Answer Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Gemini - Review Answer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Review Answer": {
+      "main": [
+        [
+          {
+            "node": "Code - Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query - Task Details": {
+      "main": [
+        [
+          {
+            "node": "Switch - Submission Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c5b6b7b5-adbd-48f6-bdfa-13700fc7822e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bd9282013e8dda099718f0b96696ffc2c8915d0a6f6124fc502a7eff313b0320"
+  },
+  "id": "oooEh8er6PLQpeMpaq9yx",
+  "tags": []
+}
