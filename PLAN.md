@@ -364,7 +364,10 @@ CREATE TABLE external_resources (
 - [ ] 設定 RLS 與 Storage
 
 ### Phase 3：n8n Workflows（2 天）
-- [ ] 建立四個核心 Workflow（僅支援文字提交的審核，音訊/截圖工作流暫延期；新增「直接完成」勾選的路徑）
+- [x] Workflow 1: 任務生成（generate-tasks）✅ 2026-01-23
+- [ ] Workflow 2: 提交審核（review-submission）
+- [ ] Workflow 3: 測驗生成（generate-test）
+- [ ] Workflow 4: 測驗批改（grade-test）
 - [ ] 測試所有 Webhook
 
 ### Phase 4-5：認證 + 資料（2-3 天）
@@ -413,6 +416,7 @@ CREATE TABLE external_resources (
 
 - [x] Docker Desktop 已安裝並運行
 - [x] n8n 已啟動 (http://localhost:5678)
-- [ ] Xcode 已安裝
-- [ ] Supabase 專案已建立
-- [ ] Gemini API Key 已取得
+- [x] Xcode Command Line Tools 已安裝
+- [x] Supabase 專案已建立
+- [x] Gemini API Key 已取得
+- [x] 測試使用者已建立（ebc3cd0d-dc42-42c1-920a-87328627fe35）

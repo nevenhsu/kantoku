@@ -1,0 +1,419 @@
+{
+  "name": "generate-tasks",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-tasks",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a0842c5b-6812-4dd1-9d22-9b1fd2dacd52",
+      "name": "Webhook",
+      "webhookId": "6aa7af0d-396a-4fa3-9fab-f353d95d5701"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2080,
+        16
+      ],
+      "id": "a2b48d5b-08ce-4e52-bb67-b653bb7e8d4b",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "user_progress",
+        "filterType": "string",
+        "filterString": "=user_id=eq.{{ $json.body.user_id }}"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "0eda0e19-bfbe-41ac-8e52-bd3bb018bea8",
+      "name": "Query - User Progress",
+      "credentials": {
+        "supabaseApi": {
+          "id": "RculhUeb6L26Iaph",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "learning_stages",
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $json.current_stage_id }}"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "02157e68-5c26-4417-9252-7b3e69d92b56",
+      "name": "Query - Learning Stage",
+      "credentials": {
+        "supabaseApi": {
+          "id": "RculhUeb6L26Iaph",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "kana_progress",
+        "filterType": "string",
+        "filterString": "=user_id=eq.{{ $('Webhook').item.json.body.user_id }}&status=in.(learning,reviewing,mastered)"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        624,
+        0
+      ],
+      "id": "e5d3c566-3e95-4d43-93f6-6674b6b51b84",
+      "name": "Query - Learned Kana",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "RculhUeb6L26Iaph",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "kana_progress",
+        "limit": 5,
+        "filterType": "string",
+        "filterString": "=user_id=eq.{{ $('Webhook').item.json.body.user_id }}&next_review=lte.{{ new Date().toISOString() }}"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        816,
+        0
+      ],
+      "id": "cdcd8451-e6f4-4af9-b888-6e770de16e66",
+      "name": "Query - Review Items",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "RculhUeb6L26Iaph",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ebdc11d9-b596-4c49-871a-904ac174bd9f",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1024,
+        0
+      ],
+      "id": "71645608-1367-4c0a-aa46-c063fcd9afa7",
+      "name": "IF - Has Review Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 取得當前階段的假名\nconst stage = $('Query - Learning Stage').first().json;\nconst kanaChars = stage.kana_chars || [];\n\n// 假名對應的羅馬拼音（Stage 1: あ行）\nconst romajiMap = {\n  'あ': 'a', 'い': 'i', 'う': 'u', 'え': 'e', 'お': 'o',\n  'か': 'ka', 'き': 'ki', 'く': 'ku', 'け': 'ke', 'こ': 'ko',\n  'さ': 'sa', 'し': 'shi', 'す': 'su', 'せ': 'se', 'そ': 'so',\n  'た': 'ta', 'ち': 'chi', 'つ': 'tsu', 'て': 'te', 'と': 'to',\n  'な': 'na', 'に': 'ni', 'ぬ': 'nu', 'ね': 'ne', 'の': 'no'\n};\n\n// 建立任務清單\nconst tasks = kanaChars.map(kana => ({\n  json: {\n    kana: kana,\n    romaji: romajiMap[kana] || kana,\n    task_type: 'kana_learn',\n    kana_type: 'hiragana'\n  }\n}));\n\nreturn tasks;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        112
+      ],
+      "id": "a9a959f2-cf01-41c5-8b79-9924fd4ac0c4",
+      "name": "Code - Select New Kana"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 取得待複習的假名\nconst reviewItems = $('Query - Review Items').all();\n\nreturn reviewItems\n  .filter(item => item.json.id) // 過濾空物件\n  .map(item => ({\n    json: {\n      kana: item.json.kana,\n      romaji: item.json.romaji,\n      task_type: 'kana_review',\n      kana_type: item.json.kana_type\n    }\n  }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        -96
+      ],
+      "id": "9b2473da-ba96-49cc-b9f0-c4939270f558",
+      "name": "Code - Prepare Review Kana"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst userId = $('Webhook').first().json.body.user_id;\nconst today = new Date().toISOString().split('T')[0];\n\nreturn items.map(item => ({\n  json: {\n    user_id: userId,\n    task_type: item.json.task_type,\n    content: JSON.stringify({\n      kana: item.json.kana,\n      romaji: item.json.romaji,\n      type: item.json.kana_type,\n      description: item.json.task_type === 'kana_learn' \n        ? `學習平假名「${item.json.kana}」` \n        : `複習平假名「${item.json.kana}」`,\n      prompt: `請輸入「${item.json.kana}」的羅馬拼音`\n    }),\n    status: 'pending',\n    due_date: today\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        112
+      ],
+      "id": "ed652f32-c658-43f9-92c4-e052ed3bfef3",
+      "name": "Code - Build Tasks"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1680,
+        112
+      ],
+      "id": "02c29d9e-ec36-4449-88f8-791bda5ceba5",
+      "name": "Loop - Insert Tasks"
+    },
+    {
+      "parameters": {
+        "tableId": "tasks",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.user_id }}"
+            },
+            {
+              "fieldId": "task_type",
+              "fieldValue": "={{ $json.task_type }}"
+            },
+            {
+              "fieldId": "content",
+              "fieldValue": "={{ $json.content }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $json.status }}"
+            },
+            {
+              "fieldId": "due_date",
+              "fieldValue": "={{ $json.due_date }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1872,
+        208
+      ],
+      "id": "afddd742-b015-47c5-bfc8-91748e13de2b",
+      "name": "Insert - Task",
+      "credentials": {
+        "supabaseApi": {
+          "id": "RculhUeb6L26Iaph",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const tasks = $input.all().map(item => ({\n  id: item.json.id,\n  task_type: item.json.task_type,\n  content: JSON.parse(item.json.content),\n  status: item.json.status,\n  due_date: item.json.due_date\n}));\n\nreturn [{\n  json: {\n    success: true,\n    tasks_generated: tasks.length,\n    tasks: tasks,\n    estimated_minutes: tasks.length * 3,\n    message: '今日任務已生成'\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        16
+      ],
+      "id": "957c760a-b47e-418f-973f-6246dfe659bd",
+      "name": "Code - Format Response"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Query - User Progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query - User Progress": {
+      "main": [
+        [
+          {
+            "node": "Query - Learning Stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query - Learning Stage": {
+      "main": [
+        [
+          {
+            "node": "Query - Learned Kana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query - Learned Kana": {
+      "main": [
+        [
+          {
+            "node": "Query - Review Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query - Review Items": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Review Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Review Items": {
+      "main": [
+        [
+          {
+            "node": "Code - Prepare Review Kana",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code - Select New Kana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Select New Kana": {
+      "main": [
+        [
+          {
+            "node": "Code - Build Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Build Tasks": {
+      "main": [
+        [
+          {
+            "node": "Loop - Insert Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop - Insert Tasks": {
+      "main": [
+        [
+          {
+            "node": "Code - Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert - Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert - Task": {
+      "main": [
+        [
+          {
+            "node": "Loop - Insert Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "ebf06214-11f1-4f58-a04d-f04181d19481",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bd9282013e8dda099718f0b96696ffc2c8915d0a6f6124fc502a7eff313b0320"
+  },
+  "id": "bCvv3KeKH_JSj4qGOgaQt",
+  "tags": []
+}

@@ -29,7 +29,12 @@
 
 ---
 
-## 📋 Workflow 1: 任務生成（generate-tasks）
+## 📋 Workflow 1: 任務生成（generate-tasks）✅ 已實作
+
+> **實作日期**: 2026-01-23  
+> **狀態**: ✅ 已完成並測試通過  
+> **Webhook URL**: `http://localhost:5678/webhook/generate-tasks`  
+> **測試使用者**: `ebc3cd0d-dc42-42c1-920a-87328627fe35`
 
 ### 目的
 根據使用者當前進度、間隔重複演算法、弱項分析，自動生成今日學習任務。
@@ -76,7 +81,62 @@
   - 預估完成時間
 ```
 
-### 節點詳細配置
+### 實際實作節點
+
+| 設計節點 | 實作節點名稱 | n8n 節點類型 | 狀態 |
+|---------|-------------|-------------|------|
+| Webhook | Webhook | Webhook | ✅ |
+| 查詢使用者進度 | Query - User Progress | Supabase | ✅ |
+| 查詢學習階段 | Query - Learning Stage | Supabase | ✅ |
+| 查詢已學假名 | Query - Learned Kana | Supabase | ✅ |
+| 查詢待複習項目 | Query - Review Items | Supabase | ✅ |
+| 判斷學習策略 | IF - Has Review Items | IF | ✅ |
+| 選擇新假名 | Code - Select New Kana | Code | ✅ |
+| 準備複習假名 | Code - Prepare Review Kana | Code | ✅ |
+| 組合任務 | Code - Build Tasks | Code | ✅ |
+| 批次插入 | Loop - Insert Tasks | Loop Over Items | ✅ |
+| 插入任務 | Insert - Task | Supabase | ✅ |
+| 格式化回應 | Code - Format Response | Code | ✅ |
+| 回傳結果 | Respond to Webhook | Respond to Webhook | ✅ |
+
+**總計**: 13 個節點
+
+### 測試結果
+
+**測試指令**:
+```bash
+curl -X POST http://localhost:5678/webhook-test/generate-tasks \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "ebc3cd0d-dc42-42c1-920a-87328627fe35", "daily_goal_minutes": 30}'
+```
+
+**成功回應**:
+```json
+{
+  "success": true,
+  "tasks_generated": 5,
+  "tasks": [
+    {"id": "...", "task_type": "kana_learn", "content": {"kana": "あ", "romaji": "a", ...}},
+    {"id": "...", "task_type": "kana_learn", "content": {"kana": "い", "romaji": "i", ...}},
+    {"id": "...", "task_type": "kana_learn", "content": {"kana": "う", "romaji": "u", ...}},
+    {"id": "...", "task_type": "kana_learn", "content": {"kana": "え", "romaji": "e", ...}},
+    {"id": "...", "task_type": "kana_learn", "content": {"kana": "お", "romaji": "o", ...}}
+  ],
+  "estimated_minutes": 15,
+  "message": "今日任務已生成"
+}
+```
+
+**驗證項目**:
+- ✅ 新使用者走 false 分支（新學習路徑）
+- ✅ 成功查詢當前階段（Stage 1: あ行）
+- ✅ 成功生成 5 個假名學習任務
+- ✅ 成功插入 tasks 表
+- ✅ 回傳格式正確
+
+---
+
+### 節點詳細配置（設計參考）
 
 #### 節點 1: 查詢使用者進度（Postgres Node）
 **Operation**: Execute Query

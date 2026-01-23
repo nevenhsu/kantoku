@@ -94,6 +94,13 @@
 
 ## 🧪 測試記錄
 
+### 測試使用者資訊
+
+- **Email**: test@kantoku.local
+- **User UID**: `ebc3cd0d-dc42-42c1-920a-87328627fe35`
+- **Current Stage**: 1（あ行）
+- **Created**: 2026-01-23
+
 ### 整合測試（2026-01-22）
 
 **測試指令**:
@@ -118,7 +125,7 @@ curl -X POST http://localhost:5678/webhook-test/test-environment \
 ## 📋 下一步任務
 
 ### 優先級 1（高）
-- [ ] 建立 Workflow 1: 任務生成（generate-tasks）
+- [x] 建立 Workflow 1: 任務生成（generate-tasks）✅ 2026-01-23
 - [ ] 建立 Workflow 2: 提交審核（review-submission）
 - [ ] 建立 Workflow 3: 測驗生成（generate-test）
 - [ ] 建立 Workflow 4: 測驗批改（grade-test）
