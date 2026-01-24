@@ -26,8 +26,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        1232,
-        -32
+        2768,
+        16
       ],
       "id": "9052660f-19d4-43f8-89f0-46e115f482e6",
       "name": "Respond to Webhook"
@@ -105,8 +105,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        688,
-        -96
+        848,
+        -80
       ],
       "id": "93486669-64fc-47e0-b29b-c9530c03bad8",
       "name": "Code - Direct Confirm"
@@ -118,8 +118,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        688,
-        256
+        576,
+        272
       ],
       "id": "51b4b966-5c36-4768-bf08-f9ba67ce83cd",
       "name": "Gemini - Review Answer Model",
@@ -139,8 +139,8 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        688,
-        48
+        576,
+        96
       ],
       "id": "68b28f7f-af04-4186-8194-bda23608d06b",
       "name": "Gemini - Review Answer"
@@ -152,8 +152,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        976,
-        48
+        848,
+        96
       ],
       "id": "c09f369e-6788-42c8-a380-7980e0081e87",
       "name": "Code - Parse AI Response"
@@ -185,6 +185,192 @@
           "name": "Supabase account"
         }
       }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1040,
+        16
+      ],
+      "id": "97dde71d-96e9-4f74-a4d0-5e47d71e200c",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE tasks\nSET \n  status = CASE WHEN $1 THEN 'passed' ELSE 'failed' END,\n  updated_at = NOW()\nWHERE id = $2\nRETURNING id, status, user_id;\n",
+        "options": {
+          "queryReplacement": "=$1: {{ $json.passed }}, $2: {{ $('Query - Task Details').item.json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1248,
+        16
+      ],
+      "id": "4724ca17-0b26-4b37-a436-5e4b9bbad9c2",
+      "name": "Postgres - Update Task",
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 取得任務內容\nconst taskDetails = $('Query - Task Details').first().json;\nconst mergeResult = $('Merge').first().json;\n\n// 解析 content（是 JSON 字串）\nlet content;\ntry {\n  content = JSON.parse(taskDetails.content);\n} catch (e) {\n  content = taskDetails.content;\n}\n\nreturn [{\n  json: {\n    user_id: taskDetails.user_id,\n    task_id: taskDetails.id,\n    task_type: taskDetails.task_type,\n    kana: content.kana,\n    romaji: content.romaji,\n    kana_type: content.type || 'hiragana',\n    passed: mergeResult.passed,\n    score: mergeResult.score,\n    ai_feedback: mergeResult.ai_feedback,\n    submission_type: $('Webhook').first().json.body.submission_type,\n    submission_content: $('Webhook').first().json.body.content || null\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        16
+      ],
+      "id": "9307a5d1-2ff0-4f16-adcc-4a72e4de5db4",
+      "name": "Code - Prepare Data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cb4865cd-ae81-4354-967a-363afd0df6bd",
+              "leftValue": "={{ $json.passed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1664,
+        16
+      ],
+      "id": "f5ce8e35-f7b0-4522-802d-7716dda9d5c1",
+      "name": "IF - Passed"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO kana_progress (\n  user_id, kana, kana_type, romaji, status, \n  correct_count, last_reviewed, next_review, mastery_score\n)\nVALUES (\n  $1, $2, $3, $4, 'learning',\n  1, NOW(), NOW() + INTERVAL '1 day', 20\n)\nON CONFLICT (user_id, kana, kana_type)\nDO UPDATE SET\n  correct_count = kana_progress.correct_count + 1,\n  last_reviewed = NOW(),\n  next_review = NOW() + INTERVAL '1 day' * CASE \n    WHEN kana_progress.correct_count = 0 THEN 1\n    WHEN kana_progress.correct_count = 1 THEN 3\n    WHEN kana_progress.correct_count = 2 THEN 7\n    WHEN kana_progress.correct_count = 3 THEN 14\n    ELSE 30\n  END,\n  mastery_score = LEAST(100, (kana_progress.correct_count + 2) * 20),\n  status = CASE \n    WHEN kana_progress.correct_count >= 4 THEN 'mastered'\n    WHEN kana_progress.correct_count >= 1 THEN 'reviewing'\n    ELSE 'learning'\n  END,\n  updated_at = NOW()\nRETURNING id, kana, correct_count, mastery_score, next_review, status;\n",
+        "options": {
+          "queryReplacement": "=$1: {{ $json.user_id }}, $2: {{ $json.kana }}, $3: {{ $json.kana_type }} ,$4: {{ $json.romaji }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1920,
+        -80
+      ],
+      "id": "ed529c08-f443-4443-a271-32b78dcc1bb1",
+      "name": "Postgres - Upsert Progress (Pass)",
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO kana_progress (\n  user_id, kana, kana_type, romaji, status, \n  incorrect_count, last_reviewed, next_review\n)\nVALUES (\n  $1, $2, $3, $4, 'learning',\n  1, NOW(), NOW() + INTERVAL '1 day'\n)\nON CONFLICT (user_id, kana, kana_type)\nDO UPDATE SET\n  incorrect_count = kana_progress.incorrect_count + 1,\n  last_reviewed = NOW(),\n  next_review = NOW() + INTERVAL '1 day',\n  updated_at = NOW()\nRETURNING id, kana, incorrect_count, status;\n",
+        "options": {
+          "queryReplacement": "=$1: {{ $json.user_id }}, $2: {{ $json.kana }}, $3: {{ $json.kana_type }}, $4: {{ $json.romaji }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1920,
+        128
+      ],
+      "id": "b0523088-4ced-459e-b02c-17e0d892d399",
+      "name": "Postgres - Update Progress (Fail)",
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2144,
+        16
+      ],
+      "id": "456e9ebb-8480-4b60-8cad-c0eee89bb8fe",
+      "name": "Merge - Progress Result"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO submissions (task_id, submission_type, content, ai_feedback, score, passed)\nVALUES ($1, $2, $3, $4::jsonb, $5, $6)\nRETURNING id, created_at;\n",
+        "options": {
+          "queryReplacement": "=$1: {{ $('Code - Prepare Data').item.json.task_id }}, $2: {{ $('Code - Prepare Data').item.json.submission_type }}, $3: {{ $('Code - Prepare Data').item.json.submission_content }}, $4: {{ JSON.stringify($('Code - Prepare Data').item.json.ai_feedback) }}, $5: {{ $('Code - Prepare Data').item.json.score }}, $6: {{ $('Code - Prepare Data').item.json.passed }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2352,
+        16
+      ],
+      "id": "1ce2f01e-9897-46aa-b73c-24d59a9a81e0",
+      "name": "Postgres - Insert Submission",
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const prepData = $('Code - Prepare Data').first().json;\nconst submission = $('Postgres - Insert Submission').first().json;\n\nreturn [{\n  json: {\n    success: true,\n    passed: prepData.passed,\n    score: prepData.score,\n    feedback: prepData.ai_feedback?.feedback || '',\n    correct_answer: prepData.ai_feedback?.correct_answer || null,\n    message: prepData.passed ? '通過！繼續加油！' : '再試一次！',\n    submission_id: submission.id,\n    created_at: submission.created_at\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        16
+      ],
+      "id": "88b27c64-500e-4803-955e-1a8825620d3d",
+      "name": "Code - Format Response"
     }
   ],
   "pinData": {},
@@ -222,7 +408,7 @@
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "Merge",
             "type": "main",
             "index": 0
           }
@@ -255,9 +441,9 @@
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "Merge",
             "type": "main",
-            "index": 0
+            "index": 1
           }
         ]
       ]
@@ -272,6 +458,112 @@
           }
         ]
       ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Update Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Update Task": {
+      "main": [
+        [
+          {
+            "node": "Code - Prepare Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Prepare Data": {
+      "main": [
+        [
+          {
+            "node": "IF - Passed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Passed": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Upsert Progress (Pass)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres - Update Progress (Fail)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Upsert Progress (Pass)": {
+      "main": [
+        [
+          {
+            "node": "Merge - Progress Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Update Progress (Fail)": {
+      "main": [
+        [
+          {
+            "node": "Merge - Progress Result",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge - Progress Result": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Insert Submission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Insert Submission": {
+      "main": [
+        [
+          {
+            "node": "Code - Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -279,7 +571,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "c5b6b7b5-adbd-48f6-bdfa-13700fc7822e",
+  "versionId": "db9871d6-2f6f-4262-90a6-26bdb64f5b7c",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "bd9282013e8dda099718f0b96696ffc2c8915d0a6f6124fc502a7eff313b0320"

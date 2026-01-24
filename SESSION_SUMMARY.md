@@ -1,12 +1,77 @@
 # Kantoku 開發會話總結
 
-**最後更新**: 2026-01-23  
-**累計工作時長**: ~6-7 小時  
-**狀態**: 🚀 Workflow 1 完成，Workflow 2 進行中（50% 完成）
+**最後更新**: 2026-01-24  
+**累計工作時長**: ~9-10 小時  
+**狀態**: 🎉 Workflow 1 & 2 完成，後端 API 核心功能運作中
 
 ---
 
 ## 📊 會話記錄
+
+### 會話 4: 2026-01-24 ✅
+
+**時長**: ~1 小時  
+**主題**: 完成 Workflow 2（提交審核）- Phase 4-6
+
+#### 完成項目
+
+1. **Workflow 2: 提交審核（review-submission）** ✅
+   - Phase 4-6 完成
+   - 總計 17 個節點
+   - **100% 完成並測試通過** 🎉
+
+2. **Phase 4: 合併路徑 + 更新任務狀態** ✅
+   - Merge 節點（Include Any Unpaired Items）
+   - Postgres - Update Task
+
+3. **Phase 5: 更新學習進度** ✅
+   - Code - Prepare Data（解析 task content）
+   - IF - Passed
+   - Postgres - Upsert Progress (Pass)（間隔重複演算法）
+   - Postgres - Update Progress (Fail)（錯誤計數）
+
+4. **Phase 6: 插入提交記錄 + 回傳** ✅
+   - Merge - Progress Result
+   - Postgres - Insert Submission
+   - Code - Format Response
+
+5. **完整測試結果**:
+   ```
+   測試 1（正確答案）: passed=true, score=100, kana_progress updated
+   測試 2（錯誤答案）: passed=false, correct_answer provided, incorrect_count++
+   測試 3（直接確認）: passed=true, score=100
+   ```
+
+6. **資料庫驗證**:
+   - ✅ tasks 狀態正確更新
+   - ✅ kana_progress 正確 upsert（correct_count / incorrect_count）
+   - ✅ submissions 記錄完整保存
+
+#### 關鍵發現與解決方案
+
+1. **Supabase Node vs Postgres Node**
+   - 問題：Supabase Node 不支援 Upsert
+   - 解決：使用 Postgres Node 執行 `INSERT ON CONFLICT UPDATE`
+
+2. **Merge 節點設定**
+   - 問題：Switch 分流後只有一條路徑有資料
+   - 解決：啟用 **Include Any Unpaired Items**
+
+3. **Query 操作選擇**
+   - 單筆查詢用 **Get**（不是 Get Many）
+   - 更直接、效能更好
+
+4. **間隔重複演算法實作**
+   - 通過：correct_count++, next_review: 1→3→7→14→30天
+   - 失敗：incorrect_count++, next_review: +1天
+
+#### 學到的經驗
+- Postgres Node 提供更多 SQL 彈性（Upsert、CASE WHEN）
+- n8n Merge 節點需要考慮資料流向（單/雙路徑）
+- Code 節點可以處理複雜的資料準備和解析邏輯
+- 完整的測試覆蓋（通過/失敗/直接確認）很重要
+
+---
 
 ### 會話 3: 2026-01-23 ⏳
 

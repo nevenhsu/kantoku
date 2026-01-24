@@ -365,7 +365,7 @@ CREATE TABLE external_resources (
 
 ### Phase 3：n8n Workflows（2 天）
 - [x] Workflow 1: 任務生成（generate-tasks）✅ 2026-01-23
-- [~] Workflow 2: 提交審核（review-submission）⏳ 進行中（Phase 1-3 完成）
+- [x] Workflow 2: 提交審核（review-submission）✅ 2026-01-24
 - [ ] Workflow 3: 測驗生成（generate-test）
 - [ ] Workflow 4: 測驗批改（grade-test）
 - [ ] 測試所有 Webhook

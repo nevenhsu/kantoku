@@ -126,7 +126,7 @@ curl -X POST http://localhost:5678/webhook-test/test-environment \
 
 ### 優先級 1（高）
 - [x] 建立 Workflow 1: 任務生成（generate-tasks）✅ 2026-01-23
-- [~] 建立 Workflow 2: 提交審核（review-submission）⏳ 進行中（Phase 1-3/6 完成）
+- [x] 建立 Workflow 2: 提交審核（review-submission）✅ 2026-01-24
 - [ ] 建立 Workflow 3: 測驗生成（generate-test）
 - [ ] 建立 Workflow 4: 測驗批改（grade-test）
 

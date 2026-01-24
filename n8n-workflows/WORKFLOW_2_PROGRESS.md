@@ -1,8 +1,9 @@
 # Workflow 2: 提交審核（review-submission）進度記錄
 
 **開始日期**: 2026-01-23  
-**狀態**: ⏳ Phase 1-3 完成（50%）  
-**預估完成時間**: 下次會話 30-45 分鐘
+**完成日期**: 2026-01-24  
+**狀態**: ✅ 完成（100%）  
+**實際完成時間**: 約 3 小時
 
 ---
 
@@ -13,11 +14,11 @@
 | Phase 1 | Webhook + 基礎架構 | 2 | ✅ 完成 | 2026-01-23 |
 | Phase 2 | 查詢任務詳情 | 1 | ✅ 完成 | 2026-01-23 |
 | Phase 3 | 分流處理（Switch + AI 審核） | 5 | ✅ 完成 | 2026-01-23 |
-| Phase 4 | 合併路徑 + 更新任務狀態 | 2 | 🔜 待完成 | - |
-| Phase 5 | 更新學習進度 | 2-3 | 🔜 待完成 | - |
-| Phase 6 | 插入提交記錄 + 回傳 | 2 | 🔜 待完成 | - |
+| Phase 4 | 合併路徑 + 更新任務狀態 | 2 | ✅ 完成 | 2026-01-24 |
+| Phase 5 | 更新學習進度 | 4 | ✅ 完成 | 2026-01-24 |
+| Phase 6 | 插入提交記錄 + 回傳 | 3 | ✅ 完成 | 2026-01-24 |
 
-**總進度**: 50%（3/6 Phases）
+**總進度**: 100%（6/6 Phases）✅ **全部完成**
 
 ---
 
@@ -408,3 +409,286 @@ curl -X POST http://localhost:5678/webhook-test/generate-tasks \
 **狀態**: ⏳ 進行中（50% 完成）  
 **下次會話**: 完成 Phase 4-6  
 **最後更新**: 2026-01-23
+
+---
+
+## ✅ Phase 4-6 完成記錄（2026-01-24）
+
+### Phase 4: 合併路徑 + 更新任務狀態 ✅
+
+**完成時間**: ~15 分鐘
+
+#### 已建立節點
+
+| 節點名稱 | 類型 | 關鍵設定 |
+|---------|------|---------|
+| Merge | Merge | Mode: Combine, **Include Any Unpaired Items: true** ⭐ |
+| Postgres - Update Task | Postgres | UPDATE tasks SET status |
+
+#### 關鍵發現
+
+**問題**: Merge 節點顯示 "No output data returned"  
+**原因**: Switch 分流後每次只有一條路徑有資料  
+**解決**: 啟用 **Include Any Unpaired Items** 選項
+
+**測試結果**: ✅ 任務狀態成功更新為 passed/failed
+
+---
+
+### Phase 5: 更新學習進度 ✅
+
+**完成時間**: ~25 分鐘
+
+#### 已建立節點
+
+| 節點名稱 | 類型 | 說明 |
+|---------|------|------|
+| Code - Prepare Data | Code | 解析 task content，準備進度更新資料 |
+| IF - Passed | IF | 判斷 passed === true |
+| Postgres - Upsert Progress (Pass) | Postgres | INSERT ON CONFLICT UPDATE（通過時） |
+| Postgres - Update Progress (Fail) | Postgres | INSERT ON CONFLICT UPDATE（失敗時） |
+
+#### 關鍵發現
+
+**重要**: Supabase Node **不支援 Upsert** 操作  
+**解決**: 使用 **Postgres Node** 直接執行 SQL：`INSERT ON CONFLICT UPDATE`
+
+#### 間隔重複演算法實作
+
+**通過時**：
+- correct_count++
+- mastery_score = (correct_count + 1) * 20
+- next_review: 1 → 3 → 7 → 14 → 30 天
+- status: learning → reviewing → mastered
+
+**失敗時**：
+- incorrect_count++
+- next_review = NOW() + 1 天
+
+**測試結果**:
+- ✅ 正確答案：correct_count=1, mastery_score=40, next_review=+3天
+- ✅ 錯誤答案：incorrect_count=1, next_review=+1天
+
+---
+
+### Phase 6: 插入提交記錄 + 回傳 ✅
+
+**完成時間**: ~15 分鐘
+
+#### 已建立節點
+
+| 節點名稱 | 類型 | 說明 |
+|---------|------|------|
+| Merge - Progress Result | Merge | 合併 Pass/Fail 路徑 |
+| Postgres - Insert Submission | Postgres | INSERT submissions 記錄 |
+| Code - Format Response | Code | 格式化最終回應 |
+
+**測試結果**: ✅ 所有路徑測試通過
+
+---
+
+## 🧪 完整測試記錄（2026-01-24）
+
+### 測試 1: 正確答案（text）
+
+**輸入**:
+```json
+{
+  "task_id": "6cdc566f-72d7-4c55-bd3b-bdf36547b16c",
+  "submission_type": "text",
+  "content": "e"
+}
+```
+
+**輸出**:
+```json
+{
+  "success": true,
+  "passed": true,
+  "score": 100,
+  "feedback": "羅馬拼音完全正確！",
+  "correct_answer": null,
+  "message": "通過！繼續加油！",
+  "submission_id": "f105e754-287c-4511-b613-2eb84e851c64"
+}
+```
+
+**資料庫驗證**:
+- ✅ tasks.status = 'passed'
+- ✅ kana_progress created/updated
+- ✅ submissions inserted
+
+---
+
+### 測試 2: 錯誤答案（text）
+
+**輸入**:
+```json
+{
+  "task_id": "44742696-8a10-471d-b5cd-a718e7180c7b",
+  "submission_type": "text",
+  "content": "wrong"
+}
+```
+
+**輸出**:
+```json
+{
+  "success": true,
+  "passed": false,
+  "score": 0,
+  "feedback": "您的答案不正確，平假名「い」的羅馬拼音是「i」。",
+  "correct_answer": "i",
+  "message": "再試一次！",
+  "submission_id": "c31b8dab-63c5-482b-ae9d-e963a62355e7"
+}
+```
+
+**資料庫驗證**:
+- ✅ tasks.status = 'failed'
+- ✅ kana_progress.incorrect_count++
+- ✅ submissions inserted
+
+---
+
+### 測試 3: 直接確認（direct_confirm）
+
+**輸入**:
+```json
+{
+  "task_id": "44742696-8a10-471d-b5cd-a718e7180c7b",
+  "submission_type": "direct_confirm"
+}
+```
+
+**輸出**:
+```json
+{
+  "success": true,
+  "passed": true,
+  "score": 100,
+  "feedback": "直接確認通過",
+  "correct_answer": null,
+  "message": "通過！繼續加油！",
+  "submission_id": "81c0d21b-a02d-4e49-b98e-e61b1d9395d3"
+}
+```
+
+**資料庫驗證**:
+- ✅ tasks.status = 'passed'
+- ✅ kana_progress updated
+- ✅ submissions inserted with type='direct_confirm'
+
+---
+
+## 📝 關鍵技術要點總結
+
+### n8n 節點設定要點
+
+1. **Supabase Get 操作**  
+   - 單筆查詢用 **Get**（不是 Get Many）✅
+   - 更直接，效能更好
+
+2. **Merge 節點**  
+   - Switch 分流後需啟用 **Include Any Unpaired Items**
+   - 否則會顯示 "No output data returned"
+
+3. **Postgres vs Supabase Node**  
+   - **Supabase Node**: 基本 CRUD 操作
+   - **Postgres Node**: 複雜 SQL（Upsert、CASE WHEN 等）
+   - Upsert 必須用 Postgres Node ⭐
+
+4. **Gemini API 版本**  
+   - 最低支援: **gemini-2.5-flash**
+   - ~~gemini-1.5-flash~~ 已不支援
+
+### SQL 技巧
+
+**Upsert 語法**:
+```sql
+INSERT INTO kana_progress (...)
+VALUES (...)
+ON CONFLICT (user_id, kana, kana_type)
+DO UPDATE SET
+  correct_count = kana_progress.correct_count + 1,
+  ...
+```
+
+**動態間隔計算**:
+```sql
+CASE 
+  WHEN correct_count = 0 THEN 1
+  WHEN correct_count = 1 THEN 3
+  WHEN correct_count = 2 THEN 7
+  ...
+END
+```
+
+### Code 節點技巧
+
+**解析 JSON 字串**:
+```javascript
+let content;
+try {
+  content = JSON.parse(taskDetails.content);
+} catch (e) {
+  content = taskDetails.content;
+}
+```
+
+**引用其他節點資料**:
+```javascript
+$('Query - Task Details').first().json
+$('Webhook').item.json.body
+$('Merge').first().json
+```
+
+---
+
+## 🎯 最終節點清單（17 個）
+
+| # | 節點名稱 | 類型 | Phase |
+|---|---------|------|-------|
+| 1 | Webhook | Webhook | 1 |
+| 2 | Query - Task Details | Supabase | 2 |
+| 3 | Switch - Submission Type | Switch | 3 |
+| 4 | Code - Direct Confirm | Code | 3 |
+| 5 | Gemini - Review Answer | AI Agent | 3 |
+| 6 | Gemini - Review Answer Model | LLM Model | 3 |
+| 7 | Code - Parse AI Response | Code | 3 |
+| 8 | Merge | Merge | 4 |
+| 9 | Postgres - Update Task | Postgres | 4 |
+| 10 | Code - Prepare Data | Code | 5 |
+| 11 | IF - Passed | IF | 5 |
+| 12 | Postgres - Upsert Progress (Pass) | Postgres | 5 |
+| 13 | Postgres - Update Progress (Fail) | Postgres | 5 |
+| 14 | Merge - Progress Result | Merge | 6 |
+| 15 | Postgres - Insert Submission | Postgres | 6 |
+| 16 | Code - Format Response | Code | 6 |
+| 17 | Respond to Webhook | Respond | 6 |
+
+---
+
+## 🎉 完成總結
+
+**狀態**: ✅ **100% 完成**  
+**總節點數**: 17 個  
+**總開發時間**: ~3 小時（2 個會話）  
+**測試狀態**: 全部通過
+
+**核心功能**:
+- ✅ 文字答案 AI 審核（Gemini 2.5 Flash）
+- ✅ 直接確認通過
+- ✅ 任務狀態更新
+- ✅ 學習進度追蹤（間隔重複演算法）
+- ✅ 提交記錄保存
+- ✅ 錯誤計數追蹤
+
+**下一步**: 
+- Workflow 3: 測驗生成
+- Workflow 4: 測驗批改
+
+---
+
+**最後更新**: 2026-01-24  
+**Workflow JSON**: `review-submission.json` (已匯出)
