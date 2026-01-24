@@ -123,7 +123,7 @@ xcode-select version 2396.
 ### 步驟 3: 測試 API Key
 
 ```bash
-curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=YOUR_API_KEY" \
+curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "contents": [{
@@ -170,25 +170,16 @@ docker-compose ps
 
 ### 步驟 3: 新增 Gemini AI Credentials
 
-**方法 1: 使用 HTTP Request 認證**
+**使用 n8n 內建的 Google Gemini 節點（推薦）**
 
-1. 新增 Credential → **HTTP Request**
-2. **Credential Name**: `Gemini AI`
-3. **Authentication**: `None`（我們在 URL 中加入 API Key）
+1. 點擊右上角 **Settings** → **Credentials**
+2. 點擊 **Add Credential**
+3. 搜尋並選擇 **Google Gemini**
+4. **Credential Name**: `Google Gemini - Kantoku`
+5. **API Key**: `[您的 Gemini API Key]`
+6. 點擊 **Save**
 
-**方法 2: 儲存為環境變數**
-
-編輯 `docker-compose.yml`:
-```yaml
-environment:
-  - GEMINI_API_KEY=YOUR_API_KEY
-```
-
-重啟 n8n:
-```bash
-docker-compose down
-docker-compose up -d
-```
+⚠️ **重要**: 在 Workflow 中請始終使用 **Google Gemini Chat Model** 節點，而不是 HTTP Request 節點。內建節點會自動處理 API 端點與認證。
 
 ### 步驟 4: 新增 Postgres Credentials（選用）
 
@@ -279,11 +270,7 @@ curl -X GET "https://xxxxxx.supabase.co/rest/v1/learning_stages?select=*" \
 預期結果: 回傳 10 個 learning_stages
 
 2. **測試 Gemini AI**:
-```bash
-curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"contents": [{"parts": [{"text": "請唸出「あ」的羅馬拼音"}]}]}'
-```
+在 n8n 中建立一個簡單的 Workflow，包含 **AI Agent** 節點連接 **Google Gemini Chat Model** 節點，點擊 **Test Step** 驗證是否能收到回應。
 
 3. **測試 n8n Workflow**:
    - 參考 `n8n-workflows/WORKFLOW_DESIGN.md` 的測試計劃

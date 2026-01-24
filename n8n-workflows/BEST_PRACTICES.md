@@ -8,19 +8,22 @@
 
 ## ⚠️ 重要注意事項
 
-### 1. Gemini AI API 版本
+### 1. Google Gemini Chat Model 節點使用
 
 **✅ 正確做法**:
-```
-Model: gemini-2.5-flash
-```
+始終使用 n8n 內建的 **Google Gemini Chat Model** 節點。這比使用 HTTP Request 節點更安全且更易於維護，因為它能直接整合 n8n 的 Credentials 系統。
+
+**設定要點**:
+- **Node 類型**: `Google Gemini Chat Model`
+- **Credentials**: 使用 `Google Gemini` 類型的憑證（只需填入 API Key）。
+- **Model**: 使用 `gemini-2.5-flash`。
 
 **❌ 錯誤做法**:
-```
-Model: gemini-1.5-flash  # 已不可用
-```
+- 使用 **HTTP Request** 節點手動呼叫 Google AI API。
+- 在 Workflow 中硬編碼 (Hardcode) API Key。
+- 使用已過時的模型版本（如 `gemini-1.5-flash`）。
 
-**原因**: Gemini 1.5 系列已停用，必須使用 2.5 系列。
+**原因**: 內建節點提供更好的錯誤處理、重試機制，並且不需要手動處理 API 端點 (Endpoints) 與複雜的 JSON 結構格式。
 
 **影響範圍**:
 - Workflow 1: generate-tasks
@@ -29,8 +32,8 @@ Model: gemini-1.5-flash  # 已不可用
 
 **更新方法**:
 1. 開啟 workflow JSON 檔案
-2. 搜尋 `gemini-1.5-flash`
-3. 替換為 `gemini-2.5-flash`
+2. 改用 Google Gemini Chat Model Node：替換 Gemini 1.5/2.5 的呼叫方式為 Node 形式
+3. 將相關引用的 API Key 放入 n8n Credentials，避免硬編碼
 
 ---
 
@@ -131,4 +134,3 @@ filters: { user_id: {{ $json.user_id }} }
 | 日期 | 更新內容 |
 |------|----------|
 | 2026-01-24 | 初始版本：記錄 Gemini API、Merge Node、Postgres vs Supabase 經驗 |
-

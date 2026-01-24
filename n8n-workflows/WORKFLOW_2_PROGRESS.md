@@ -286,8 +286,8 @@ curl -X POST http://localhost:5678/webhook-test/review-submission \
 
 ### Gemini API 版本
 
-- ✅ **gemini-2.5-flash**：目前最低支援版本（更快、更便宜）
-- ❌ ~~gemini-1.5-flash~~：已不支援
+- ✅ **gemini-2.5-flash**：目前支援版本
+- ❌ ~~gemini-1.5-flash~~：已不建議使用
 
 ### Switch 節點路由
 

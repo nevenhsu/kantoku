@@ -17,16 +17,14 @@
 - SSL: `allow`
 - Port: `5432`
 
-**或使用 HTTP Request 呼叫 Supabase REST API**
-- Base URL: `https://xxxxxx.supabase.co/rest/v1`
-- Headers:
-  - `apikey`: `[您的 Supabase Anon Key]`
-  - `Authorization`: `Bearer [您的 Supabase Service Role Key]`
 
 ### Gemini AI Credentials
+在 n8n Settings → Credentials 中新增：
+
+**Credential Type**: Google Gemini
 - API Key: `[您的 Gemini API Key]`
-- Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`
-- ⚠️ **注意**: 必須使用 `gemini-2.5-flash`（1.5 系列已停用）
+
+⚠️ **注意**: 請使用 **Google Gemini Chat Model** 節點，該節點會自動處理 API 端點與認證，無需手動設定 Endpoint。
 
 ---
 
@@ -400,36 +398,45 @@ return {
 };
 ```
 
-#### 節點 3b: AI 審核文字答案（HTTP Request + Code Node）
+#### 節點 3b: Google Gemini Chat Model 文字審核（新節點）
 
-**HTTP Request to Gemini AI**
+節點類型: **Google Gemini Chat Model**
 
-**Method**: POST
-**URL**: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $credentials.gemini_api_key }}`
-
-**Body**:
-```json
-{
-  "contents": [{
-    "parts": [{
-      "text": "你是日文學習審核 AI。請審核以下答案是否正確。\n\n任務類型：{{ $('Query Task').item.json.task_type }}\n任務內容：{{ $('Query Task').item.json.content }}\n使用者答案：{{ $('Webhook').item.json.body.content }}\n\n請以 JSON 格式回答：\n{\n  \"passed\": true/false,\n  \"score\": 0-100,\n  \"feedback\": \"詳細回饋\",\n  \"correct_answer\": \"正確答案（如果錯誤）\"\n}\n\n審核標準：\n- 假名學習：羅馬拼音完全正確即通過\n- 單字學習：允許小錯誤（如長音、促音），80% 相似度即通過"
-    }]
-  }],
-  "generationConfig": {
-    "temperature": 0.1,
-    "maxOutputTokens": 500
-  }
-}
-```
+**設定要點**:
+- **Credential**: 選擇已設定的 Google Gemini Credential
+- **Model**: `gemini-2.5-flash`
+- **Prompt**:
+  > 你是日文學習審核 AI。請審核以下答案是否正確。
+  > 
+  > 任務類型：{{ $('Query Task').item.json.task_type }}
+  > 任務內容：{{ $('Query Task').item.json.content }}
+  > 使用者答案：{{ $('Webhook').item.json.body.content }}
+  > 
+  > 請以 JSON 格式回答：
+  > {
+  >   "passed": true/false,
+  >   "score": 0-100,
+  >   "feedback": "詳細回饋",
+  >   "correct_answer": "正確答案（如果錯誤）"
+  > }
+  > 
+  > 審核標準：
+  > - 假名學習：羅馬拼音完全正確即通過
+  > - 單字學習：允許小錯誤（如長音、促音），80% 相似度即通過
 
 **Parse AI Response (Code Node)**:
 ```javascript
 const response = $input.item.json;
-const text = response.candidates[0].content.parts[0].text;
-
-// 提取 JSON
-const jsonMatch = text.match(/\{[\s\S]*\}/);
-const result = JSON.parse(jsonMatch[0]);
+let content = '';
+try {
+  content = response?.candidates?.[0]?.content?.parts?.[0]?.text ||
+            response?.candidates?.[0]?.content?.text ||
+            response?.choices?.[0]?.message?.content || '';
+} catch (e) {
+  content = '';
+}
+const jsonMatch = content.match(/\{[\s\S]*\}/);
+const result = jsonMatch ? JSON.parse(jsonMatch[0]) : { passed: false, score: 0, feedback: '', correct_answer: '' };
 
 return {
   passed: result.passed,
@@ -547,7 +554,7 @@ RETURNING id, created_at;
   ├─ kana_progress (mastered)
   └─ vocabulary_progress (mastered)
   ↓
-[3. Gemini AI 生成題目]
+[3. Google Gemini Chat Model 生成題目]
   - 10 題選擇題
   - 覆蓋已學內容
   ↓
@@ -583,32 +590,18 @@ ORDER BY RANDOM()
 LIMIT 50;
 ```
 
-#### 節點 3: Gemini AI 生成題目（HTTP Request）
+#### 節點 3: Google Gemini Chat Model 生成題目
 
-**Prompt**:
-```
-你是日文測驗生成 AI。請根據以下已學假名生成 10 題測驗。
+節點類型: **Google Gemini Chat Model**
 
-已學假名：{{ $json.learned_kana }}
-
-測驗格式（JSON）：
-{
-  "questions": [
-    {
-      "question": "「あ」的羅馬拼音是？",
-      "options": ["a", "i", "u", "e"],
-      "correct_answer": "a",
-      "type": "kana_to_romaji"
-    },
-    ...
-  ]
-}
-
-要求：
-- 題型混合：假名→羅馬拼音、羅馬拼音→假名、單字辨識
-- 難度適中，覆蓋所有已學假名
-- 4 個選項，只有 1 個正確答案
-```
+**設定要點**:
+- **Credential**: 選擇已設定的 Google Gemini Credential
+- **Model**: `gemini-2.5-flash`
+- **Prompt**:
+  > 你是日文測驗生成 AI。
+  > 根據以下已學內容生成 10 題測驗，題型混合：假名→羅馬拼音、羅馬拼音→假名、單字辨識；輸出格式 JSON。
+  > 已學內容：{{ $json.learned_items }}
+  > 每題需包含 4 個選項，只有 1 個正確答案。
 
 #### 節點 4: 插入測驗（Postgres Node）
 

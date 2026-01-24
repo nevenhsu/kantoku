@@ -526,7 +526,7 @@ git push origin main
 ### 技術問題
 1. ⏳ **Gemini API 模型版本**
    - 目前使用: gemini-pro
-   - 計劃: 測試 gemini-1.5-flash（更快更便宜）
+   - 計劃: 測試 ggemini-2.5-flash（更快更便宜）
    - 狀態: 可運作，待優化
 
 2. ⏳ **間隔重複演算法參數**

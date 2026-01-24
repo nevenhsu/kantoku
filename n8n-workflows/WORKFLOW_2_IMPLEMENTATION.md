@@ -83,7 +83,8 @@
   - 4 次以上: +30 天
 
 ### 4. AI 審核
-- **模型**: Google Gemini 1.5 Flash (gemini-2.5-flash)
+- **模型**: Google Gemini 2.5 Flash (gemini-2.5-flash)
+- **節點**: Google Gemini Chat Model Node
 - **Prompt**:
   > 你是日文學習審核 AI。請審核以下答案是否正確...
   > 請以 JSON 格式回答：{ "passed": boolean, "score": number, "feedback": string, "correct_answer": string }
