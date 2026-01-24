@@ -25,7 +25,8 @@
 
 ### Gemini AI Credentials
 - API Key: `[您的 Gemini API Key]`
-- Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`
+- Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`
+- ⚠️ **注意**: 必須使用 `gemini-2.5-flash`（1.5 系列已停用）
 
 ---
 
@@ -404,7 +405,7 @@ return {
 **HTTP Request to Gemini AI**
 
 **Method**: POST
-**URL**: `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={{ $credentials.gemini_api_key }}`
+**URL**: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $credentials.gemini_api_key }}`
 
 **Body**:
 ```json
