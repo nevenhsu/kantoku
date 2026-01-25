@@ -27,8 +27,9 @@
 
 **影響範圍**:
 - Workflow 1: generate-tasks
-- Workflow 2: review-submission
-- Workflow 3: test-environment (如有使用 AI)
+- Workflow 2: review-submission  
+- Workflow 3: generate-test
+- Workflow 4: grade-test
 
 **更新方法**:
 1. 開啟 workflow JSON 檔案
@@ -102,6 +103,64 @@ filters: { user_id: {{ $json.user_id }} }
 
 ---
 
+### 4. Always Output Data 設定
+
+**✅ 正確做法**:
+對於可能沒有結果的查詢節點，務必勾選 **Always Output Data**。
+
+**適用場景**:
+- 檢查資料是否存在的查詢（如 `Postgres - Check Existing Test`）
+- 條件篩選可能無結果的查詢
+- IF 節點前的資料檢查節點
+
+**❌ 錯誤做法**:
+- 未勾選 Always Output Data → 無結果時流程中斷
+- IF 節點無法判斷條件
+
+**原因**: 
+- 若不勾選此選項，當查詢無結果時，後續節點不會執行
+- IF 節點需要輸入才能進行條件判斷
+
+**影響範圍**:
+- Workflow 3: generate-test（檢查測驗是否存在）
+- 其他需要檢查資料存在性的 workflows
+
+**檢查方法**:
+1. 打開 Postgres/Supabase Node 設定
+2. 勾選 "Always Output Data" 選項
+
+---
+
+### 5. Webhook 測試路徑
+
+**✅ 正確做法**:
+測試環境使用 `/webhook-test/` 前綴。
+
+**設定要點**:
+- **Workflow 路徑**: `/generate-test`（JSON 中設定）
+- **測試環境 URL**: `http://localhost:5678/webhook-test/generate-test`
+- **生產環境 URL**: `http://localhost:5678/webhook/generate-test`
+
+**❌ 錯誤做法**:
+- JSON 中設定 `webhook-test/generate-test`
+- 混淆 workflow 路徑與完整 URL
+
+**原因**: 
+- n8n 自動根據環境添加前綴
+- JSON 只需設定相對路徑
+- 測試/生產環境由 URL 前綴區分
+
+**測試指令**:
+```bash
+# 測試環境（自動添加 webhook-test 前綴）
+curl -X POST http://localhost:5678/webhook-test/generate-test
+
+# 生產環境（自動添加 webhook 前綴）
+curl -X POST http://localhost:5678/webhook/generate-test
+```
+
+---
+
 ## 🔧 常見陷阱
 
 ### 1. Webhook 測試時記得開啟 Workflow
@@ -134,3 +193,4 @@ filters: { user_id: {{ $json.user_id }} }
 | 日期 | 更新內容 |
 |------|----------|
 | 2026-01-24 | 初始版本：記錄 Gemini API、Merge Node、Postgres vs Supabase 經驗 |
+| 2026-01-24 | 新增：Always Output Data 設定、Webhook 測試路徑最佳實踐 |

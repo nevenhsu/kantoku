@@ -1,0 +1,474 @@
+{
+  "name": "generate-test",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-test",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -80,
+        -48
+      ],
+      "id": "371ac3c9-6a8e-4f7f-97be-3c5520999f35",
+      "name": "Webhook",
+      "webhookId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2576,
+        512
+      ],
+      "id": "ccd1128e-f062-490f-8def-9fe0d4baf537",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, passed, questions\nFROM tests\nWHERE user_id = $1\n  AND category = $2\n  AND progress_milestone = $3\nORDER BY created_at DESC\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "=$1: {{ $json.body.user_id }}, $2: {{ $json.body.category }}, $3: {{ $json.body.progress_milestone }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        160,
+        -48
+      ],
+      "id": "08d7559a-1369-4162-821b-da5df42873e9",
+      "name": "Postgres - Check Existing Test",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const existingTest = $input.first().json;\n\nreturn [{\n  json: {\n    success: true,\n    test_id: existingTest.id,\n    questions: existingTest.questions,\n    total_questions: existingTest.questions?.questions?.length || 10,\n    message: '測驗已存在，直接回傳現有測驗',\n    is_existing: true\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -176
+      ],
+      "id": "c50ca46f-6dfa-4316-a802-92475e8979a4",
+      "name": "Code - Return Existing Test"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT kana, romaji, kana_type\nFROM kana_progress\nWHERE user_id = $1\n  AND kana_type = $2\n  AND mastery_score >= 70\nORDER BY RANDOM()\nLIMIT 50;",
+        "options": {
+          "queryReplacement": "=$1: {{ $('Webhook').item.json.body.user_id }}, $2: {{ $('Webhook').item.json.body.category }}\n"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        640,
+        272
+      ],
+      "id": "b95971ee-f9c6-4e0a-9ba4-06c93f76d30a",
+      "name": "Postgres - Query Learned Kana",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const learnedItems = $input.all();\nconst userId = $('Webhook').first().json.body.user_id;\nconst category = $('Webhook').first().json.body.category;\nconst milestone = $('Webhook').first().json.body.progress_milestone;\n\n// 準備學習內容摘要\nconst kanaList = learnedItems.map(item => `${item.json.kana}(${item.json.romaji})`).join(', ');\n\nreturn [{\n  json: {\n    user_id: userId,\n    category: category,\n    progress_milestone: milestone,\n    learned_items: learnedItems.map(item => ({\n      kana: item.json.kana,\n      romaji: item.json.romaji,\n      type: item.json.kana_type\n    })),\n    learned_summary: kanaList,\n    total_items: learnedItems.length\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        128
+      ],
+      "id": "36b9e545-4a27-4aca-968d-5e106a7d461b",
+      "name": "Code - Prepare Test Data"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        304
+      ],
+      "id": "6d5a2372-5c65-4225-ba92-1eacf6b2d456",
+      "name": "Gemini - Generate Test Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "A0Ms6dosk71b24xr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是日文測驗生成 AI。請根據以下已學內容生成 10 題選擇題，題型混合，輸出格式必須是 JSON（只回傳 JSON，不要其他文字）。\n\n已學內容：{{ $json.learned_summary }}\n類別：{{ $json.category }}\n進度里程碑：{{ $json.progress_milestone }}%\n\n請生成以下格式的 JSON：\n{\n  \"questions\": [\n    {\n      \"id\": 0,\n      \"type\": \"kana_to_romaji\",\n      \"question\": \"請選擇「あ」的正確羅馬拼音\",\n      \"options\": [\"a\", \"i\", \"u\", \"e\"],\n      \"correct_answer\": \"a\",\n      \"kana\": \"あ\"\n    },\n    {\n      \"id\": 1,\n      \"type\": \"romaji_to_kana\",\n      \"question\": \"請選擇「ka」對應的平假名\",\n      \"options\": [\"あ\", \"か\", \"さ\", \"た\"],\n      \"correct_answer\": \"か\",\n      \"kana\": \"か\"\n    }\n  ]\n}\n\n題型說明：\n- kana_to_romaji: 假名轉羅馬拼音\n- romaji_to_kana: 羅馬拼音轉假名\n\n要求：\n1. 每題 4 個選項，只有 1 個正確答案\n2. 選項要相似但明確區分\n3. 覆蓋已學的假名\n4. ID 從 0 開始編號\n5. 確保 JSON 格式正確",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1424,
+        128
+      ],
+      "id": "0098c499-0eda-4b14-ab86-f09574741f7f",
+      "name": "Gemini - Generate Test Questions"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\n// Gemini 回應可能在不同位置，嘗試取得文字\nlet text = '';\nif (response.text) {\n  text = response.text;\n} else if (response.output) {\n  text = response.output;\n} else if (response.content) {\n  text = response.content;\n} else {\n  text = JSON.stringify(response);\n}\n\n// 提取 JSON\ntry {\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const result = JSON.parse(jsonMatch[0]);\n    \n    // 驗證格式\n    if (result.questions && Array.isArray(result.questions) && result.questions.length === 10) {\n      return [{\n        json: {\n          success: true,\n          questions: result,\n          parse_status: 'success'\n        }\n      }];\n    }\n  }\n} catch (e) {\n  console.error('JSON parse error:', e);\n}\n\n// 解析失敗，生成預設測驗\nconst testData = $('Code - Prepare Test Data').first().json;\nconst defaultQuestions = [];\n\nfor (let i = 0; i < 10 && i < testData.learned_items.length; i++) {\n  const item = testData.learned_items[i];\n  defaultQuestions.push({\n    id: i,\n    type: 'kana_to_romaji',\n    question: `請選擇「${item.kana}」的正確羅馬拼音`,\n    options: [item.romaji, 'a', 'i', 'u'],\n    correct_answer: item.romaji,\n    kana: item.kana\n  });\n}\n\nreturn [{\n  json: {\n    success: true,\n    questions: { questions: defaultQuestions },\n    parse_status: 'fallback',\n    error: 'AI response parsing failed, using default questions'\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        128
+      ],
+      "id": "d99b3eac-5e00-40b0-a8d3-d1499ff046c4",
+      "name": "Code - Parse AI Response"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO tests (\n  user_id, category, progress_milestone, questions, \n  created_at\n)\nVALUES (\n  $1, $2, $3, $4::jsonb,\n  NOW()\n)\nRETURNING id, questions, created_at;\n",
+        "options": {
+          "queryReplacement": "=$1: {{ $('Code - Prepare Test Data').item.json.user_id }}, $2: {{ $('Code - Prepare Test Data').item.json.category }}, $3: {{ $('Code - Prepare Test Data').item.json.progress_milestone }}, $4: {{ JSON.stringify($('Code - Parse AI Response').item.json.questions) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1952,
+        128
+      ],
+      "id": "55974c6b-3a7c-41fc-ad03-5ef08a50b853",
+      "name": "Postgres - Insert Test",
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const testData = $('Code - Parse AI Response').first().json;\nconst insertResult = $input.first().json;\n\nreturn [{\n  json: {\n    success: true,\n    test_id: insertResult.id,\n    questions: insertResult.questions,\n    total_questions: insertResult.questions?.questions?.length || 10,\n    message: '測驗已生成，請開始作答',\n    is_existing: false,\n    created_at: insertResult.created_at,\n    parse_status: testData.parse_status\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        128
+      ],
+      "id": "326aa90d-c1ce-4b98-8d91-a68d24bb00fc",
+      "name": "Code - Format New Test Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $('Webhook').first().json.body.user_id;\nconst category = $('Webhook').first().json.body.category;\nconst milestone = $('Webhook').first().json.body.progress_milestone;\n\nreturn [{\n  json: {\n    success: false,\n    error: 'Not enough learned items to generate test',\n    message: '需要至少學會 10 個假名才能生成測驗',\n    user_id: userId,\n    category: category,\n    progress_milestone: milestone,\n    minimum_required: 10\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        496
+      ],
+      "id": "069d7a5f-1ba4-480b-9716-008f26bd626d",
+      "name": "Code - Not Enough Items Error"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2368,
+        -160
+      ],
+      "id": "a4b1f177-26c7-42d5-a14c-9814685e662a",
+      "name": "Merge - All Responses",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "dea3797a-c61e-457c-9463-eb1ef80b4308",
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 10,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        864,
+        272
+      ],
+      "id": "8bade1bc-8176-487d-a013-e67babaee392",
+      "name": "IF - Enough Learned Items"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        400,
+        -48
+      ],
+      "id": "e61435e8-7178-4526-890d-265a8a262f6c",
+      "name": "IF - Test Exists"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Check Existing Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Check Existing Test": {
+      "main": [
+        [
+          {
+            "node": "IF - Test Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Return Existing Test": {
+      "main": [
+        [
+          {
+            "node": "Merge - All Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Query Learned Kana": {
+      "main": [
+        [
+          {
+            "node": "IF - Enough Learned Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Generate Test Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Gemini - Generate Test Questions",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Generate Test Questions": {
+      "main": [
+        [
+          {
+            "node": "Code - Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Insert Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Insert Test": {
+      "main": [
+        [
+          {
+            "node": "Code - Format New Test Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Format New Test Response": {
+      "main": [
+        [
+          {
+            "node": "Merge - All Responses",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge - All Responses": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Prepare Test Data": {
+      "main": [
+        [
+          {
+            "node": "Gemini - Generate Test Questions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Not Enough Items Error": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Enough Learned Items": {
+      "main": [
+        [
+          {
+            "node": "Code - Prepare Test Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code - Not Enough Items Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Test Exists": {
+      "main": [
+        [
+          {
+            "node": "Code - Return Existing Test",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres - Query Learned Kana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c5fffd10-aac3-4c28-9d49-6a664dec5fbb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bd9282013e8dda099718f0b96696ffc2c8915d0a6f6124fc502a7eff313b0320"
+  },
+  "id": "ZxrywaJ2PLK9xblq0ydb3",
+  "tags": []
+}
