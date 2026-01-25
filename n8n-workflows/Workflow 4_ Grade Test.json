@@ -1,0 +1,462 @@
+{
+  "name": "Workflow 4: Grade Test",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grade-test",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1824,
+        128
+      ],
+      "id": "be8291f6-b1dd-49b3-9a56-86193c0fda14",
+      "name": "Webhook",
+      "webhookId": "8690af43-e56c-4a14-9560-41a5f065efbd"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  t.id,\n  t.user_id,\n  t.questions,\n  t.category,\n  t.progress_milestone\nFROM tests t\nWHERE t.id = $1;",
+        "options": {
+          "queryReplacement": "=$1: {{ $json.body.test_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1600,
+        128
+      ],
+      "id": "cb6a4385-a230-48e5-a7e7-e66919717328",
+      "name": "Postgres - Query Test",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const test = $input.first().json;\nconst answers = $('Webhook').first().json.body.answers;\n\n// 驗證測驗是否存在\nif (!test.id) {\n  return [{\n    json: {\n      success: false,\n      error: 'Test not found',\n      message: '找不到指定的測驗'\n    }\n  }];\n}\n\nconst questions = test.questions.questions || [];\nlet correctCount = 0;\nconst weaknessItems = [];\nconst detailedResults = [];\n\nquestions.forEach((q, index) => {\n  const userAnswer = answers[index.toString()];\n  const correctAnswer = q.correct_answer;\n  const isCorrect = userAnswer === correctAnswer;\n  \n  if (isCorrect) {\n    correctCount++;\n  } else {\n    weaknessItems.push({\n      question_id: q.id,\n      question: q.question,\n      user_answer: userAnswer || '(未作答)',\n      correct_answer: correctAnswer,\n      kana: q.kana || null\n    });\n  }\n  \n  detailedResults.push({\n    question_id: q.id,\n    is_correct: isCorrect,\n    user_answer: userAnswer,\n    correct_answer: correctAnswer\n  });\n});\n\nconst score = questions.length > 0 \n  ? Math.round((correctCount / questions.length) * 100) \n  : 0;\nconst passed = score >= 80;\n\nreturn [{\n  json: {\n    test_id: test.id,\n    user_id: test.user_id,\n    category: test.category,\n    answers: answers,\n    score: score,\n    passed: passed,\n    weakness_items: weaknessItems,\n    correct_count: correctCount,\n    total_questions: questions.length,\n    detailed_results: detailedResults\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1376,
+        128
+      ],
+      "id": "f04fc7b9-0945-4cbc-b3ba-65254a4728bf",
+      "name": "Code - Grade Answers"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE tests\nSET \n  answers = $2::jsonb,\n  score = $3,\n  passed = $4,\n  weakness_items = $5::jsonb,\n  completed_at = NOW()\nWHERE id = $1\nRETURNING id, score, passed;",
+        "options": {
+          "queryReplacement": "=$1: {{ $json.test_id }}, $2: {{ JSON.stringify($json.answers) }}, $3: {{ $json.score }}, $4: {{ $json.passed }}, $5: {{ JSON.stringify($json.weakness_items) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1168,
+        128
+      ],
+      "id": "03b3e88f-a6f1-48f3-8c35-cb025bbb6e0c",
+      "name": "Postgres - Update Test Result",
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "condition-passed",
+              "leftValue": "={{ $('Code - Grade Answers').item.json.passed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -944,
+        128
+      ],
+      "id": "fc29841d-a1c2-4ef4-ab63-30c159914bd3",
+      "name": "IF - Test Passed"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH progress_calc AS (\n  -- 只計算已掌握的數量\n  SELECT \n    COUNT(*) as current_mastered\n  FROM kana_progress\n  WHERE user_id = $1\n    AND kana_type = $2\n    AND mastery_score >= 70\n)\nUPDATE learning_stats\nSET \n  mastered_items = (SELECT current_mastered FROM progress_calc),\n  -- 分母改用 learning_stats 表格內的 total_items\n  progress_percent = ROUND(\n    (SELECT current_mastered::float FROM progress_calc) / NULLIF(total_items, 0) * 100\n  ),\n  updated_at = NOW()\nWHERE user_id = $1\n  AND category = $2\nRETURNING progress_percent, mastered_items, total_items;\n",
+        "options": {
+          "queryReplacement": "==$1: {{ $('Code - Grade Answers').item.json.user_id }}, $2: {{ $('Code - Grade Answers').item.json.category }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -704,
+        0
+      ],
+      "id": "537bd21f-a053-4753-9c28-c8e94c47f4de",
+      "name": "Postgres - Update Learning Stats",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -464,
+        128
+      ],
+      "id": "b34696f7-1f8d-4102-84a3-2950d6488531",
+      "name": "Merge - After Stats"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "condition-weakness",
+              "leftValue": "={{ $('Code - Grade Answers').item.json.weakness_items.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -240,
+        128
+      ],
+      "id": "e51828ff-a560-4953-a1a9-5152dcda7a0a",
+      "name": "IF - Has Weakness"
+    },
+    {
+      "parameters": {
+        "jsCode": "const gradeResult = $('Code - Grade Answers').first().json;\nconst weaknessItems = gradeResult.weakness_items || [];\n\n// 提取有 kana 的弱項\nconst weaknessKana = weaknessItems\n  .map(item => item.kana)\n  .filter(k => k !== null && k !== undefined);\n\nif (weaknessKana.length === 0) {\n  return [{\n    json: {\n      has_kana_weakness: false,\n      weakness_kana: []\n    }\n  }];\n}\n\n// 返回每個弱項假名作為獨立 item（用於 Loop）\nreturn weaknessKana.map(kana => ({\n  json: {\n    user_id: gradeResult.user_id,\n    kana: kana\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a48e324a-5519-4c3a-84ad-b40bfb9b8059",
+      "name": "Code - Extract Weakness Kana"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        432,
+        -80
+      ],
+      "id": "e64bc6d3-e75c-4d40-b1ee-b46f277013fa",
+      "name": "Loop - Update Each Weakness"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE kana_progress\nSET \n  next_review = NOW() + INTERVAL '1 day',\n  status = 'reviewing',\n  incorrect_count = incorrect_count + 1,\n  updated_at = NOW()\nWHERE user_id = $1\n  AND kana = $2\nRETURNING kana, next_review, incorrect_count;\n",
+        "options": {
+          "queryReplacement": "=$1: {{ $json.user_id }}, $2: {{ $json.kana }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        288,
+        -256
+      ],
+      "id": "7f608fb0-9059-4a0a-bece-47c0af8f82c8",
+      "name": "Postgres - Adjust Weakness Review",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        704,
+        128
+      ],
+      "id": "e4fa7e7a-1920-4831-8fab-cf3f552851f7",
+      "name": "Merge - Final"
+    },
+    {
+      "parameters": {
+        "jsCode": "const gradeResult = $('Code - Grade Answers').first().json;\n\nreturn [{\n  json: {\n    success: true,\n    test_id: gradeResult.test_id,\n    score: gradeResult.score,\n    passed: gradeResult.passed,\n    correct_count: gradeResult.correct_count,\n    total_questions: gradeResult.total_questions,\n    weakness_items: gradeResult.weakness_items,\n    message: gradeResult.passed \n      ? '🎉 恭喜通過測驗！' \n      : '繼續努力！建議加強弱項練習。'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        128
+      ],
+      "id": "3761dab9-71cf-45ce-b1e3-6a862926e461",
+      "name": "Code - Format Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1152,
+        128
+      ],
+      "id": "0bca6b31-bc34-447a-86fa-aff185ff0d42",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Query Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Query Test": {
+      "main": [
+        [
+          {
+            "node": "Code - Grade Answers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Grade Answers": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Update Test Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Update Test Result": {
+      "main": [
+        [
+          {
+            "node": "IF - Test Passed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Test Passed": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Update Learning Stats",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge - After Stats",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Postgres - Update Learning Stats": {
+      "main": [
+        [
+          {
+            "node": "Merge - After Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge - After Stats": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Weakness",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Weakness": {
+      "main": [
+        [
+          {
+            "node": "Code - Extract Weakness Kana",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge - Final",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code - Extract Weakness Kana": {
+      "main": [
+        [
+          {
+            "node": "Loop - Update Each Weakness",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop - Update Each Weakness": {
+      "main": [
+        [
+          {
+            "node": "Merge - Final",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres - Adjust Weakness Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Adjust Weakness Review": {
+      "main": [
+        [
+          {
+            "node": "Loop - Update Each Weakness",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge - Final": {
+      "main": [
+        [
+          {
+            "node": "Code - Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "a98957f5-7a5c-4d4b-bfdc-a41b139d95f1",
+  "meta": {
+    "instanceId": "bd9282013e8dda099718f0b96696ffc2c8915d0a6f6124fc502a7eff313b0320"
+  },
+  "id": "LxB5EdKZuRs_YhiqOEFTX",
+  "tags": []
+}

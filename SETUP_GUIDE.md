@@ -8,9 +8,9 @@
 
 - [x] Docker Desktop 已安裝
 - [x] n8n 已啟動
-- [ ] Xcode 已安裝
-- [ ] Supabase 專案已建立
-- [ ] Gemini API Key 已取得
+- [x] Xcode 已安裝
+- [x] Supabase 專案已建立
+- [x] Gemini API Key 已取得
 
 ---
 

@@ -1,5 +1,5 @@
 {
-  "name": "generate-tasks",
+  "name": "Workflow 1: Generate Tasks",
   "nodes": [
     {
       "parameters": {
