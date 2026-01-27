@@ -1,7 +1,7 @@
 # Kantoku iOS 開發進度報告
 
 **日期**: 2026-01-27  
-**狀態**: Phase 1, 2, 3, 4 & 5 完成
+**狀態**: Phase 1, 2, 3, 4 & 5 完成 + 測試配置完成 ✅
 
 ## 完成項目總覽
 
@@ -184,11 +184,25 @@
     - 相機權限配置
     - 相簿權限配置
 
+### 測試工具（測試配置）✅
+
+22. **ConnectionTestService** ✅
+    - **ConnectionTestService.swift** - 連接測試服務
+    - 測試 Supabase 連接（基礎、Auth、Database、Storage）
+    - 測試 n8n Webhooks（generate-tasks、review-submission）
+    - 提供詳細的測試結果和錯誤訊息
+
+23. **TestConnectionView** ✅
+    - **TestConnectionView.swift** - 測試界面視圖
+    - 美觀的測試界面
+    - 一鍵執行所有測試
+    - 測試結果摘要和進度條
+
 ## 文件統計
 
-- **Swift 文件總數**: 33 個（Phase 5 新增 5 個）
+- **Swift 文件總數**: 35 個（Phase 5 新增 5 個，測試配置新增 2 個）
 - **目錄數量**: 10 個
-- **已完成**: Phase 1, 2, 3, 4 & 5
+- **已完成**: Phase 1, 2, 3, 4 & 5 + 測試配置 ✅
 - **待開發**: Phase 6-7
 
 ## 技術架構
@@ -239,6 +253,31 @@
 - [ ] 測驗生成界面
 - [ ] 測驗進行流程
 - [ ] 評分與反饋
+
+## 測試配置 ✅
+
+### 連接測試工具 (2026-01-27)
+- ✅ **ConnectionTestService.swift** - 連接測試服務
+  - 測試 Supabase 連接（基礎、Auth、Database、Storage）
+  - 測試 n8n Webhooks（generate-tasks、review-submission）
+  - 提供詳細的測試結果和錯誤訊息
+  - 測量執行時間
+
+- ✅ **TestConnectionView.swift** - 測試界面視圖
+  - 美觀的測試界面
+  - 一鍵執行所有測試
+  - 測試結果摘要和進度條
+  - 可展開的詳細資訊
+  - 內建使用指南
+
+- ✅ **kantokuApp.swift** - 測試模式整合
+  - 啟動時自動顯示測試視圖（開發模式）
+  - 可通過按鈕或配置關閉測試模式
+
+- ✅ **測試文檔**
+  - [TESTING_GUIDE.md](./TESTING_GUIDE.md) - 完整測試指南
+  - [QUICK_TEST_GUIDE.md](./QUICK_TEST_GUIDE.md) - 快速開始指南
+  - [TEST_SETUP_COMPLETE.md](./TEST_SETUP_COMPLETE.md) - 配置完成報告
 
 ## 環境配置完成記錄 ✅
 

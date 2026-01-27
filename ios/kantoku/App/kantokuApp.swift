@@ -11,28 +11,43 @@ import SwiftUI
 struct kantokuApp: App {
     @StateObject private var authService = AuthService.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @AppStorage("showTestView") private var showTestView = true // 開發模式：顯示測試視圖
     @State private var showOnboarding = false
     
     var body: some Scene {
         WindowGroup {
             ZStack {
-                // Main Content
-                if authService.isAuthenticated {
-                    MainTabView()
+                // Development Mode: Show Test View
+                if showTestView {
+                    NavigationStack {
+                        TestConnectionView()
+                            .toolbar {
+                                ToolbarItem(placement: .navigationBarTrailing) {
+                                    Button("關閉測試") {
+                                        showTestView = false
+                                    }
+                                }
+                            }
+                    }
                 } else {
-                    LoginView()
-                }
-                
-                // Onboarding Overlay
-                if showOnboarding && !hasCompletedOnboarding {
-                    OnboardingView(showOnboarding: $showOnboarding)
-                        .transition(.opacity)
-                        .zIndex(1)
+                    // Main Content
+                    if authService.isAuthenticated {
+                        MainTabView()
+                    } else {
+                        LoginView()
+                    }
+                    
+                    // Onboarding Overlay
+                    if showOnboarding && !hasCompletedOnboarding {
+                        OnboardingView(showOnboarding: $showOnboarding)
+                            .transition(.opacity)
+                            .zIndex(1)
+                    }
                 }
             }
             .onAppear {
                 // Show onboarding only on first launch
-                if !hasCompletedOnboarding {
+                if !hasCompletedOnboarding && !showTestView {
                     showOnboarding = true
                 }
             }
