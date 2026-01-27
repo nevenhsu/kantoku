@@ -10,6 +10,7 @@ import SwiftUI
 /// 任務列表視圖
 struct TasksView: View {
     @StateObject private var viewModel = TaskViewModel()
+    @ObservedObject private var authService = AuthService.shared
     @State private var showFilterSheet = false
     @State private var selectedTask: TaskModel?
     
@@ -51,7 +52,9 @@ struct TasksView: View {
             FilterSheet(viewModel: viewModel)
         }
         .sheet(item: $selectedTask) { task in
-            TaskDetailView(task: task, viewModel: viewModel)
+            if let userId = authService.currentUser?.id {
+                TaskDetailView(task: task, userId: userId, viewModel: viewModel)
+            }
         }
         .task {
             await viewModel.loadAllTasks()

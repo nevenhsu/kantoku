@@ -10,8 +10,13 @@ import SwiftUI
 /// 任務詳情視圖 - 根據不同任務類型顯示不同內容
 struct TaskDetailView: View {
     let task: TaskModel
+    let userId: UUID
     @ObservedObject var viewModel: TaskViewModel
     @Environment(\.dismiss) private var dismiss
+    
+    @State private var showAudioRecording = false
+    @State private var showImageUpload = false
+    @StateObject private var submissionViewModel = SubmissionViewModel()
     
     var body: some View {
         NavigationStack {
@@ -28,6 +33,11 @@ struct TaskDetailView: View {
                         actionButtons
                     }
                     
+                    // Submission History (if exists)
+                    if task.status == .submitted || task.status == .passed || task.status == .failed {
+                        submissionHistorySection
+                    }
+                    
                     Spacer()
                 }
                 .padding(Constants.Spacing.md)
@@ -41,6 +51,20 @@ struct TaskDetailView: View {
                         dismiss()
                     }
                 }
+            }
+            .sheet(isPresented: $showAudioRecording) {
+                AudioRecordingView(
+                    viewModel: submissionViewModel,
+                    task: task,
+                    userId: userId
+                )
+            }
+            .sheet(isPresented: $showImageUpload) {
+                ImageUploadView(
+                    viewModel: submissionViewModel,
+                    task: task,
+                    userId: userId
+                )
             }
         }
     }
@@ -90,18 +114,137 @@ struct TaskDetailView: View {
     
     // MARK: - Action Buttons
     private var actionButtons: some View {
-        VStack(spacing: Constants.Spacing.sm) {
-            PrimaryButton(text: "開始任務", style: .primary) {
-                Task {
-                    await viewModel.submitTask(task)
-                    dismiss()
+        VStack(spacing: Constants.Spacing.md) {
+            // Submission Type Selection
+            Text("選擇提交方式")
+                .font(Constants.Typography.headline)
+                .foregroundColor(Constants.Colors.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            HStack(spacing: Constants.Spacing.md) {
+                // Audio Submission Button
+                Button {
+                    showAudioRecording = true
+                } label: {
+                    VStack(spacing: Constants.Spacing.sm) {
+                        Image(systemName: "mic.circle.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(Constants.Colors.accent)
+                        
+                        Text("音訊提交")
+                            .font(Constants.Typography.body)
+                            .foregroundColor(Constants.Colors.textPrimary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(Constants.Spacing.md)
+                    .background(Constants.Colors.cardBackground)
+                    .cornerRadius(Constants.UI.cornerRadius)
+                }
+                
+                // Image Submission Button
+                Button {
+                    showImageUpload = true
+                } label: {
+                    VStack(spacing: Constants.Spacing.sm) {
+                        Image(systemName: "photo.circle.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(Constants.Colors.secondary)
+                        
+                        Text("圖片提交")
+                            .font(Constants.Typography.body)
+                            .foregroundColor(Constants.Colors.textPrimary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(Constants.Spacing.md)
+                    .background(Constants.Colors.cardBackground)
+                    .cornerRadius(Constants.UI.cornerRadius)
                 }
             }
             
-            PrimaryButton(text: "跳過此任務", style: .secondary) {
-                // TODO: Implement skip functionality
-                dismiss()
+            // Skip Button
+            PrimaryButton(
+                title: "跳過此任務",
+                style: .secondary,
+                action: {
+                    Task {
+                        await viewModel.completeTask(task.id)
+                        dismiss()
+                    }
+                }
+            )
+        }
+        .padding(Constants.Spacing.md)
+        .background(Constants.Colors.cardBackground)
+        .cornerRadius(Constants.UI.cornerRadius)
+    }
+    
+    // MARK: - Submission History Section
+    private var submissionHistorySection: some View {
+        VStack(alignment: .leading, spacing: Constants.Spacing.md) {
+            Text("提交狀態")
+                .font(Constants.Typography.headline)
+                .foregroundColor(Constants.Colors.textPrimary)
+            
+            HStack {
+                Image(systemName: statusIcon)
+                    .foregroundColor(statusColor)
+                
+                Text(statusText)
+                    .font(Constants.Typography.body)
+                    .foregroundColor(Constants.Colors.textSecondary)
+                
+                Spacer()
+                
+                if task.status == .submitted {
+                    ProgressView()
+                }
             }
+            .padding(Constants.Spacing.md)
+            .background(statusColor.opacity(0.1))
+            .cornerRadius(Constants.UI.cornerRadius)
+        }
+        .padding(Constants.Spacing.md)
+        .background(Constants.Colors.cardBackground)
+        .cornerRadius(Constants.UI.cornerRadius)
+    }
+    
+    // MARK: - Status Helpers
+    private var statusIcon: String {
+        switch task.status {
+        case .submitted:
+            return "clock.fill"
+        case .passed:
+            return "checkmark.circle.fill"
+        case .failed:
+            return "xmark.circle.fill"
+        default:
+            return "circle"
+        }
+    }
+    
+    private var statusColor: Color {
+        switch task.status {
+        case .submitted:
+            return Constants.Colors.warning
+        case .passed:
+            return Constants.Colors.success
+        case .failed:
+            return Constants.Colors.danger
+        default:
+            return Constants.Colors.textSecondary
+        }
+    }
+    
+    private var statusText: String {
+        switch task.status {
+        case .submitted:
+            return "AI 正在審核中，請稍候..."
+        case .passed:
+            return "恭喜通過！"
+        case .failed:
+            return "未通過，請查看反饋並重新提交"
+        default:
+            return "待提交"
         }
     }
     
@@ -355,6 +498,7 @@ extension KanaType {
             createdAt: Date(),
             updatedAt: Date()
         ),
+        userId: UUID(),
         viewModel: TaskViewModel()
     )
 }

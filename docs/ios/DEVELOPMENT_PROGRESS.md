@@ -1,7 +1,7 @@
 # Kantoku iOS 開發進度報告
 
 **日期**: 2026-01-27  
-**狀態**: Phase 1, 2, 3 & 4 完成
+**狀態**: Phase 1, 2, 3, 4 & 5 完成
 
 ## 完成項目總覽
 
@@ -138,12 +138,58 @@
     - TaskType.allCases 擴展
     - TaskStatus.allCases 擴展
 
+### Phase 5: Submission & AI Review ✅
+
+17. **StorageService** ✅
+    - **StorageService.swift** - Supabase Storage 文件管理
+    - 音訊文件上傳（M4A 格式）
+    - 圖片文件上傳（JPEG 壓縮）
+    - 獲取公開 URL
+    - 文件下載與刪除
+    - 按用戶組織文件結構
+
+18. **SubmissionViewModel** ✅
+    - **SubmissionViewModel.swift** - 提交業務邏輯與狀態管理
+    - 音訊錄製管理（開始/停止/播放/刪除）
+    - 圖片選擇管理
+    - 提交流程（上傳 → 記錄 → 審核觸發）
+    - 進度追蹤（0-100%）
+    - AI 審核輪詢機制（每 3 秒）
+    - 審核結果通知
+
+19. **提交視圖** ✅
+    - **AudioRecordingView.swift** - 音訊錄製界面
+      - 錄音控制（mic 按鈕 + 脈衝動畫）
+      - 錄音時長顯示
+      - 播放預覽功能
+      - 上傳進度覆蓋層
+    - **ImageUploadView.swift** - 圖片上傳界面
+      - 拍照功能（相機）
+      - 相簿選擇（PhotosPicker）
+      - 圖片預覽
+      - 上傳進度覆蓋層
+    - **ReviewResultView.swift** - AI 審核結果顯示
+      - 通過/未通過狀態
+      - 評分顯示（進度環）
+      - AI 反饋卡片（總評、優點、建議、鼓勵）
+
+20. **TaskDetailView 整合** ✅
+    - 添加提交方式選擇（音訊/圖片）
+    - Sheet 導航到錄音/上傳視圖
+    - 提交狀態顯示區
+    - userId 參數傳遞
+
+21. **權限管理** ✅
+    - 麥克風權限請求
+    - 相機權限配置
+    - 相簿權限配置
+
 ## 文件統計
 
-- **Swift 文件總數**: 28 個（新增 2 個）
+- **Swift 文件總數**: 33 個（Phase 5 新增 5 個）
 - **目錄數量**: 10 個
-- **已完成**: Phase 1, 2, 3 & 4
-- **待開發**: Phase 5-7
+- **已完成**: Phase 1, 2, 3, 4 & 5
+- **待開發**: Phase 6-7
 
 ## 技術架構
 
@@ -174,13 +220,15 @@
 - [x] 任務過濾與搜尋
 - [x] 即時統計數據顯示
 
-### Phase 5: Submission & AI Review (P1) 🔜
-- [ ] 音訊錄製界面
-- [ ] 圖片上傳功能
-- [ ] AI 審核結果顯示
-- [ ] Polling 機制實作
-- [ ] 整合 n8n Webhook（提交審核）
-- [ ] Supabase Storage 上傳
+### Phase 5: Submission & AI Review (P1) ✅
+- [x] 音訊錄製界面（AudioRecordingView）
+- [x] 圖片上傳功能（ImageUploadView）
+- [x] AI 審核結果顯示（ReviewResultView）
+- [x] Polling 機制實作（SubmissionViewModel）
+- [x] 整合 n8n Webhook（提交審核）
+- [x] Supabase Storage 上傳（StorageService）
+- [x] TaskDetailView 整合提交功能
+- [x] 進度追蹤系統
 
 ### Phase 6: Progress & Statistics (P1)
 - [ ] Swift Charts 集成
@@ -241,6 +289,8 @@ Version: 2.0.0 或更高
 
 - [iOS_PLAN.md](./iOS_PLAN.md) - 開發路線圖
 - [iOS_CODE_EXAMPLES.md](./iOS_CODE_EXAMPLES.md) - 代碼範例
+- [PHASE4_SUMMARY.md](./PHASE4_SUMMARY.md) - Phase 4 完成總結
+- [PHASE5_SUMMARY.md](./PHASE5_SUMMARY.md) - Phase 5 完成總結
 - [ui/](./ui/) - UI 設計規範
 - [../Supabase/SCHEMA.md](../Supabase/SCHEMA.md) - 資料庫結構
 
