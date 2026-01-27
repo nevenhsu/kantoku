@@ -15,6 +15,7 @@
 
 /* Begin PBXFileReference section */
 		0B1DF2A72F232A8300D106F7 /* kantoku.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kantoku.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0B6693392F28C68D0039985F /* kantoku/Resources/Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = kantoku/Resources/Config.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -43,6 +44,7 @@
 		0B1DF29E2F232A8300D106F7 = {
 			isa = PBXGroup;
 			children = (
+				0B6693392F28C68D0039985F /* kantoku/Resources/Config.xcconfig */,
 				0B1DF2A92F232A8300D106F7 /* kantoku */,
 				0BBFEA342F28B22800D135D7 /* Frameworks */,
 				0B1DF2A82F232A8300D106F7 /* Products */,
@@ -153,6 +155,7 @@
 /* Begin XCBuildConfiguration section */
 		0B1DF2B02F232A8500D106F7 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0B6693392F28C68D0039985F /* Config.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -214,6 +217,7 @@
 		};
 		0B1DF2B12F232A8500D106F7 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0B6693392F28C68D0039985F /* Config.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -267,6 +271,7 @@
 		};
 		0B1DF2B32F232A8500D106F7 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0B6693392F28C68D0039985F /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -310,6 +315,7 @@
 		};
 		0B1DF2B42F232A8500D106F7 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0B6693392F28C68D0039985F /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

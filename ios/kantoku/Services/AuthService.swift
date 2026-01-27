@@ -31,8 +31,15 @@ class AuthService: ObservableObject {
     func checkAuthStatus() async {
         do {
             let session = try await supabase.auth.session
-            self.currentUser = session.user
-            self.isAuthenticated = true
+            
+            // 檢查 Session 是否過期（配合 emitLocalSessionAsInitialSession: true）
+            if session.isExpired {
+                self.currentUser = nil
+                self.isAuthenticated = false
+            } else {
+                self.currentUser = session.user
+                self.isAuthenticated = true
+            }
         } catch {
             self.currentUser = nil
             self.isAuthenticated = false

@@ -27,7 +27,12 @@ class SupabaseService {
         
         self.client = SupabaseClient(
             supabaseURL: url,
-            supabaseKey: supabaseKey
+            supabaseKey: supabaseKey,
+            options: SupabaseClientOptions(
+                auth: .init(
+                    emitLocalSessionAsInitialSession: true
+                )
+            )
         )
     }
     
