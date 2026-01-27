@@ -9,8 +9,7 @@ import SwiftUI
 
 /// 首頁儀表板
 struct DashboardView: View {
-    @State private var todayTasks: [TaskModel] = []
-    @State private var isLoading = true
+    @StateObject private var viewModel = TaskViewModel()
     
     var body: some View {
         ScrollView {
@@ -31,8 +30,8 @@ struct DashboardView: View {
         .background(Constants.Colors.background)
         .navigationTitle("今日學習")
         .navigationBarTitleDisplayMode(.large)
-        .onAppear {
-            loadDashboardData()
+        .task {
+            await viewModel.loadDashboardData()
         }
     }
     
@@ -55,7 +54,7 @@ struct DashboardView: View {
             HStack(spacing: 6) {
                 Image(systemName: "flame.fill")
                     .foregroundColor(.orange)
-                Text("7")
+                Text("\(viewModel.currentStreak)")
                     .font(Constants.Typography.h3)
                     .fontWeight(.bold)
                 Text("天")
@@ -83,12 +82,12 @@ struct DashboardView: View {
                         .stroke(Constants.Colors.primary.opacity(0.2), lineWidth: 8)
                     
                     Circle()
-                        .trim(from: 0, to: 0.6)
+                        .trim(from: 0, to: viewModel.progressPercentage)
                         .stroke(Constants.Colors.primary, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                     
                     VStack(spacing: 2) {
-                        Text("60")
+                        Text("\(Int(viewModel.progressPercentage * 100))")
                             .font(Constants.Typography.h2)
                             .fontWeight(.bold)
                         Text("%")
@@ -99,9 +98,9 @@ struct DashboardView: View {
                 .frame(width: 80, height: 80)
                 
                 VStack(alignment: .leading, spacing: 8) {
-                    progressItem(icon: "checkmark.circle.fill", text: "已完成 3 個任務", color: .green)
-                    progressItem(icon: "clock.fill", text: "剩餘 2 個任務", color: .orange)
-                    progressItem(icon: "chart.bar.fill", text: "學習時間 18 分鐘", color: .blue)
+                    progressItem(icon: "checkmark.circle.fill", text: "已完成 \(viewModel.completedTasksCount) 個任務", color: .green)
+                    progressItem(icon: "clock.fill", text: "剩餘 \(viewModel.totalTasksCount - viewModel.completedTasksCount) 個任務", color: .orange)
+                    progressItem(icon: "chart.bar.fill", text: "學習時間 \(viewModel.todayMinutes) 分鐘", color: .blue)
                 }
             }
         }
@@ -139,14 +138,14 @@ struct DashboardView: View {
                 }
             }
             
-            if isLoading {
+            if viewModel.isLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .padding(Constants.Spacing.xl)
-            } else if todayTasks.isEmpty {
+            } else if viewModel.todayTasks.isEmpty {
                 EmptyTaskCard()
             } else {
-                ForEach(todayTasks) { task in
+                ForEach(viewModel.todayTasks) { task in
                     TaskCard(task: task) {
                         // Navigate to task detail
                     }
@@ -155,14 +154,7 @@ struct DashboardView: View {
         }
     }
     
-    // MARK: - Data Loading
-    private func loadDashboardData() {
-        // Simulate loading
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            isLoading = false
-            // Load actual data from API
-        }
-    }
+
 }
 
 // MARK: - Preview

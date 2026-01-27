@@ -1,7 +1,7 @@
 # Kantoku iOS 開發進度報告
 
 **日期**: 2026-01-27  
-**狀態**: Phase 1, 2 & 3 完成
+**狀態**: Phase 1, 2, 3 & 4 完成
 
 ## 完成項目總覽
 
@@ -86,12 +86,64 @@
     - 根據認證狀態切換視圖
     - Onboarding 首次啟動邏輯
 
+### Phase 4: Dashboard & Task Management ✅
+
+12. **TaskViewModel** ✅
+    - **TaskViewModel.swift** - 任務業務邏輯與狀態管理
+    - 載入今日任務與所有任務
+    - 任務過濾（類型、狀態、搜尋）
+    - 統計資料計算（完成率、進度百分比）
+    - 任務狀態更新（提交、完成）
+    - 生成每日任務（n8n 整合）
+    - 模擬資料生成（開發測試）
+
+13. **完整的 DashboardView** ✅
+    - 連接 TaskViewModel 進行數據管理
+    - 即時更新的每日進度環形圖
+    - 連勝天數顯示
+    - 統計卡片（已完成/剩餘任務、學習時間）
+    - 今日任務列表預覽
+    - 使用 .task 進行異步資料載入
+
+14. **TaskListView（完整任務列表）** ✅
+    - **TasksView.swift** - 重構為完整的任務列表
+    - 搜尋功能（即時搜尋）
+    - 過濾器面板（Filter Sheet）
+    - 過濾標籤（Filter Chips）顯示當前過濾條件
+    - 清除過濾器功能
+    - 空狀態處理
+    - 任務卡片列表（LazyVStack）
+    - 導航到任務詳情
+
+15. **TaskDetailView** ✅
+    - **TaskDetailView.swift** - 任務詳情視圖
+    - 根據任務類型顯示不同內容：
+      - **KanaLearnContentView** - 假名學習（網格顯示）
+      - **KanaReviewContentView** - 假名複習（網格顯示）
+      - **VocabularyContentView** - 單字學習（單字卡片）
+      - **ExternalResourceContentView** - 外部資源（連結）
+    - **KanaCard** 組件 - 可點擊顯示/隱藏羅馬字
+    - **VocabularyCard** 組件 - 單字詳細資訊展示
+    - 任務操作按鈕（開始任務、跳過）
+    - 狀態徽章顯示
+    - 到期日顯示
+
+16. **過濾與分類功能** ✅
+    - FilterSheet - 過濾器彈窗
+    - FilterChip - 過濾標籤組件
+    - 按任務類型過濾
+    - 按任務狀態過濾
+    - 搜尋文字過濾
+    - 組合式過濾（多條件同時生效）
+    - TaskType.allCases 擴展
+    - TaskStatus.allCases 擴展
+
 ## 文件統計
 
-- **Swift 文件總數**: 26 個
+- **Swift 文件總數**: 28 個（新增 2 個）
 - **目錄數量**: 10 個
-- **已完成**: Phase 1, 2 & 3
-- **待開發**: Phase 4-7
+- **已完成**: Phase 1, 2, 3 & 4
+- **待開發**: Phase 5-7
 
 ## 技術架構
 
@@ -114,17 +166,21 @@
 - [x] Onboarding 引導流程
 - [x] Session 管理
 
-### Phase 4: Dashboard & Task Management (P0) 🔜
-- [ ] 完整的 DashboardView 實作
-- [ ] TaskListView 與過濾功能
-- [ ] TaskDetailView（各種任務類型）
-- [ ] TaskViewModel
+### Phase 4: Dashboard & Task Management (P0) ✅
+- [x] 完整的 DashboardView 實作
+- [x] TaskListView 與過濾功能
+- [x] TaskDetailView（各種任務類型）
+- [x] TaskViewModel
+- [x] 任務過濾與搜尋
+- [x] 即時統計數據顯示
 
-### Phase 5: Submission & AI Review (P1)
+### Phase 5: Submission & AI Review (P1) 🔜
 - [ ] 音訊錄製界面
 - [ ] 圖片上傳功能
 - [ ] AI 審核結果顯示
 - [ ] Polling 機制實作
+- [ ] 整合 n8n Webhook（提交審核）
+- [ ] Supabase Storage 上傳
 
 ### Phase 6: Progress & Statistics (P1)
 - [ ] Swift Charts 集成
