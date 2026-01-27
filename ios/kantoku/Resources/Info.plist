@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>SUPABASE_URL</key>
+    <string>$(SUPABASE_URL)</string>
+    <key>SUPABASE_ANON_KEY</key>
+    <string>$(SUPABASE_ANON_KEY)</string>
+    <key>N8N_BASE_URL</key>
+    <string>$(N8N_BASE_URL)</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>我們需要使用麥克風來錄製您的發音以進行學習評估</string>
+    <key>NSCameraUsageDescription</key>
+    <string>我們需要使用相機來拍攝您的學習筆記</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>我們需要存取照片庫來儲存您的學習記錄</string>
+</dict>
+</plist>
