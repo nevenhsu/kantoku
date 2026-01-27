@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Auth
 
 /// 任務列表視圖
 struct TasksView: View {

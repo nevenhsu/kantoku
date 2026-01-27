@@ -7,6 +7,7 @@
 
 import Foundation
 import Supabase
+import Auth
 
 /// 連接測試服務
 /// 用於測試 Supabase 和 n8n 的連接狀態
