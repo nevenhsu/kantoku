@@ -10,14 +10,37 @@ import SwiftUI
 @main
 struct kantokuApp: App {
     @StateObject private var authService = AuthService.shared
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var showOnboarding = false
     
     var body: some Scene {
         WindowGroup {
-            if authService.isAuthenticated {
-                MainTabView()
-            } else {
-                // TODO: 實作登入頁面
-                Text("登入頁面")
+            ZStack {
+                // Main Content
+                if authService.isAuthenticated {
+                    MainTabView()
+                } else {
+                    LoginView()
+                }
+                
+                // Onboarding Overlay
+                if showOnboarding && !hasCompletedOnboarding {
+                    OnboardingView(showOnboarding: $showOnboarding)
+                        .transition(.opacity)
+                        .zIndex(1)
+                }
+            }
+            .onAppear {
+                // Show onboarding only on first launch
+                if !hasCompletedOnboarding {
+                    showOnboarding = true
+                }
+            }
+            .onChange(of: showOnboarding) { _, newValue in
+                // Mark onboarding as completed when dismissed
+                if !newValue {
+                    hasCompletedOnboarding = true
+                }
             }
         }
     }

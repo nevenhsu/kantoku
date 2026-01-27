@@ -1,7 +1,7 @@
 # Kantoku iOS 開發進度報告
 
 **日期**: 2026-01-27  
-**狀態**: Phase 1 & 2 完成
+**狀態**: Phase 1, 2 & 3 完成
 
 ## 完成項目總覽
 
@@ -60,12 +60,38 @@
    - **TestsView.swift** - 測驗（占位）
    - **ProfileView.swift** - 個人設定（占位）
 
+### Phase 3: Authentication & Onboarding ✅
+
+8. **AuthViewModel** ✅
+   - **AuthViewModel.swift** - 認證狀態管理
+   - 登入/註冊/登出業務邏輯
+   - 表單驗證（電子郵件、密碼）
+   - 錯誤處理與用戶提示
+
+9. **認證視圖** ✅
+   - **LoginView.swift** - 登入頁面
+   - **SignUpView.swift** - 註冊頁面
+   - **ForgotPasswordSheet** - 密碼重設彈窗
+   - 完整的表單驗證與錯誤提示
+
+10. **引導流程** ✅
+    - **OnboardingView.swift** - 歡迎引導頁面
+    - 4 頁滑動式引導內容
+    - 跳過功能
+    - 首次啟動自動顯示
+    - 使用 @AppStorage 持久化狀態
+
+11. **應用入口更新** ✅
+    - **kantokuApp.swift** - 整合認證流程
+    - 根據認證狀態切換視圖
+    - Onboarding 首次啟動邏輯
+
 ## 文件統計
 
-- **Swift 文件總數**: 22 個
-- **目錄數量**: 9 個
-- **已完成**: Phase 1 & 2
-- **待開發**: Phase 3-7
+- **Swift 文件總數**: 26 個
+- **目錄數量**: 10 個
+- **已完成**: Phase 1, 2 & 3
+- **待開發**: Phase 4-7
 
 ## 技術架構
 
@@ -82,13 +108,13 @@
 
 ## 下一步開發計劃
 
-### Phase 3: Authentication & Onboarding (P0) 🔜
-- [ ] 登入/註冊 Views
-- [ ] AuthViewModel
-- [ ] Onboarding 引導流程
-- [ ] Session 管理
+### Phase 3: Authentication & Onboarding (P0) ✅
+- [x] 登入/註冊 Views
+- [x] AuthViewModel
+- [x] Onboarding 引導流程
+- [x] Session 管理
 
-### Phase 4: Dashboard & Task Management (P0)
+### Phase 4: Dashboard & Task Management (P0) 🔜
 - [ ] 完整的 DashboardView 實作
 - [ ] TaskListView 與過濾功能
 - [ ] TaskDetailView（各種任務類型）
