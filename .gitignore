@@ -21,6 +21,11 @@ build/
 *.xcuserstate
 *.xcuserdatad/
 
+# Local config with secrets
+*.local.xcconfig
+Config.local.xcconfig
+
+
 # Swift Package Manager
 .swiftpm/
 .build/

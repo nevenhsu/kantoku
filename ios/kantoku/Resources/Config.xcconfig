@@ -1,9 +1,10 @@
 // Configuration settings file format documentation can be found at:
 // https://help.apple.com/xcode/#/dev745c5c974
 
-// Supabase Configuration
+// Import local config if exists (secrets)
+#include? "Config.local.xcconfig"
+
+// Default values (placeholders)
 SUPABASE_URL = YOUR_SUPABASE_URL
 SUPABASE_ANON_KEY = YOUR_SUPABASE_ANON_KEY
-
-// n8n Configuration
 N8N_BASE_URL = http:/$()/localhost:5678
