@@ -240,34 +240,72 @@
 - [ ] 測驗進行流程
 - [ ] 評分與反饋
 
+## 環境配置完成記錄 ✅
+
+### 1. Xcode Swift Package Manager 配置 ✅ (2026-01-27)
+- ✅ **Supabase Swift SDK 已添加**
+  - Package: `https://github.com/supabase/supabase-swift.git`
+  - Version: 2.0.0+
+  - Products: Supabase (包含 Auth, Storage, PostgREST)
+  
+### 2. Supabase Storage 配置 ✅ (2026-01-27)
+- ✅ **submissions bucket 已創建**
+  - Bucket 名稱: `submissions`
+  - 類型: Private (需要認證)
+  - 檔案大小限制: 50MB
+  - 允許的 MIME 類型: `image/jpeg, image/png, image/heic, audio/m4a, audio/mpeg, audio/wav`
+
+- ✅ **RLS Policies 已設定**
+  - **Insert Policy**: "Users can upload their own submissions"
+    - 用戶只能上傳到自己的資料夾 (`{user_id}/`)
+  - **Select Policy**: "Users can view their own submissions"
+    - 用戶只能讀取自己的檔案
+  - **Delete Policy**: "Users can delete their own submissions"
+    - 用戶只能刪除自己的檔案
+  - **Service Role Policy**: "Service role has full access" (可選)
+    - n8n webhook 可用 service_role key 存取所有檔案
+
+- ✅ **檔案路徑格式**: `{user_id}/{filename}`
+  - 範例: `ebc3cd0d-dc42-42c1-920a-87328627fe35/recording_1738022400.m4a`
+
+### 3. n8n Workflow 端點確認 ✅ (2026-01-27)
+- ✅ **generate-tasks**: `http://localhost:5678/webhook/generate-tasks`
+  - 狀態: 已實作並測試通過
+  - 用途: 生成每日學習任務
+  
+- ✅ **review-submission**: `http://localhost:5678/webhook/review-submission`
+  - 狀態: 已實作並測試通過
+  - 用途: AI 審核使用者提交（文字/直接確認）
+  - 支援類型: `text`, `direct_confirm`
+
+### 4. Git 安全配置 ✅ (2026-01-27)
+- ✅ **Config.local.xcconfig 安全設定**
+  - `.gitignore` 已更新，排除 `*.local.xcconfig`
+  - `Config.xcconfig` 保留為模板（佔位符）
+  - `Config.local.xcconfig` 包含真實密鑰（不追蹤）
+  - 使用 `#include? "Config.local.xcconfig"` 引入本地配置
+
+- ✅ **環境變數配置完成**
+  - `SUPABASE_URL`: 已設定
+  - `SUPABASE_ANON_KEY`: 已設定
+  - `N8N_BASE_URL`: 已設定
+
+### 5. 配置檔案結構
+```
+ios/kantoku/Resources/
+├── Config.xcconfig           # 模板（追蹤到 git）
+├── Config.local.xcconfig     # 真實密鑰（不追蹤）
+└── Info.plist               # 權限配置
+```
+
 ## 已知問題
 
-### LSP 錯誤（需要在 Xcode 中解決）
-1. **Supabase 模組未找到**
-   - 需要在 Xcode 中添加 Swift Package: `https://github.com/supabase/supabase-swift.git`
-   
-2. **UIKit 模組問題**
+### LSP 錯誤（次要問題）
+1. **UIKit 模組問題**
    - 某些 LSP 緩存問題，在 Xcode 中構建應該會自動解決
 
-3. **文件路徑更新**
-   - 需要在 Xcode 中重新組織文件引用
-
-## 配置步驟（待執行）
-
-### 1. 在 Xcode 中添加依賴
-```
-File > Add Package Dependencies...
-添加: https://github.com/supabase/supabase-swift.git
-Version: 2.0.0 或更高
-```
-
-### 2. 更新 Config.xcconfig
-將 `YOUR_SUPABASE_URL` 和 `YOUR_SUPABASE_ANON_KEY` 替換為實際值
-
-### 3. 重新組織文件
-在 Xcode Project Navigator 中：
-- 將所有文件按目錄結構重新組織
-- 確保所有文件都在正確的 Target Membership 中
+2. **文件路徑更新**
+   - 需要在 Xcode 中重新組織文件引用（如果需要）
 
 ## 設計規範遵循
 
@@ -285,6 +323,34 @@ Version: 2.0.0 或更高
 4. **添加單元測試** - 確保代碼質量
 5. **Dark Mode 測試** - 確保所有顏色自適應正常
 
+## 使用指南
+
+### Supabase Storage 使用範例
+```swift
+// 上傳音訊檔案
+let userId = await supabaseService.currentUserId
+let fileName = "recording_\(Date().timeIntervalSince1970).m4a"
+let filePath = "\(userId)/\(fileName)"
+
+let publicURL = try await supabase.storage
+    .from("submissions")
+    .upload(path: filePath, file: audioData, options: FileOptions(contentType: "audio/m4a"))
+    .publicURL
+```
+
+### n8n Webhook 使用範例
+```swift
+// 調用 review-submission webhook
+let response = try await apiService.post(
+    endpoint: "/webhook/review-submission",
+    body: [
+        "task_id": taskId,
+        "submission_type": "text",
+        "content": userAnswer
+    ]
+)
+```
+
 ## 文檔參考
 
 - [iOS_PLAN.md](./iOS_PLAN.md) - 開發路線圖
@@ -293,7 +359,9 @@ Version: 2.0.0 或更高
 - [PHASE5_SUMMARY.md](./PHASE5_SUMMARY.md) - Phase 5 完成總結
 - [ui/](./ui/) - UI 設計規範
 - [../Supabase/SCHEMA.md](../Supabase/SCHEMA.md) - 資料庫結構
+- [../n8n-workflows/WORKFLOW_DESIGN.md](../../n8n-workflows/WORKFLOW_DESIGN.md) - n8n Workflow 設計
 
 ---
 
-**備註**: 所有 LSP 錯誤都是正常的，因為依賴包尚未通過 Swift Package Manager 安裝。在 Xcode 中打開項目並添加依賴後，這些錯誤將自動解決。
+**更新日誌**:
+- **2026-01-27**: Phase 1-5 完成，環境配置全部完成（Xcode SDK、Supabase Storage、n8n Webhooks、Git 安全配置）
