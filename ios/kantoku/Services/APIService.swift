@@ -12,11 +12,11 @@ import Foundation
 class APIService {
     static let shared = APIService()
     
-    private let baseURL: String
+    let baseURL: String
     
     private init() {
-        // 從 Info.plist 讀取 n8n URL
-        self.baseURL = Bundle.main.object(forInfoDictionaryKey: "N8N_BASE_URL") as? String ?? "http://localhost:5678"
+        // 從 Constants 讀取 n8n URL
+        self.baseURL = Constants.Environment.n8nBaseURL
     }
     
     // MARK: - Task Generation
@@ -26,7 +26,7 @@ class APIService {
     ///   - userId: 用戶 ID
     ///   - dailyGoalMinutes: 每日目標分鐘數
     /// - Returns: 任務列表
-    func generateTasks(userId: UUID, dailyGoalMinutes: Int) async throws -> [Task] {
+    func generateTasks(userId: UUID, dailyGoalMinutes: Int) async throws -> [TaskModel] {
         let url = URL(string: "\(baseURL)\(Constants.API.generateTasks)")!
         
         var request = URLRequest(url: url)
@@ -43,6 +43,24 @@ class APIService {
         let response = try JSONDecoder().decode(TaskGenerationResponse.self, from: data)
         
         return response.tasks
+    }
+    
+    /// 通用的 POST 請求（用於測試）
+    func post(endpoint: String, body: [String: Any]) async throws -> [String: Any] {
+        let url = URL(string: "\(baseURL)\(endpoint)")!
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        
+        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            return json
+        } else {
+            throw NSError(domain: "APIService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response format"])
+        }
     }
     
     // MARK: - Submission Review
@@ -124,7 +142,7 @@ class APIService {
 // MARK: - Response Models
 
 struct TaskGenerationResponse: Codable {
-    let tasks: [Task]
+    let tasks: [TaskModel]
 }
 
 struct SubmissionResult: Codable {

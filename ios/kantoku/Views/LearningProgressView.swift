@@ -8,7 +8,7 @@
 import SwiftUI
 
 /// 進度追蹤視圖
-struct ProgressView: View {
+struct LearningProgressView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Constants.Spacing.md) {
@@ -23,6 +23,6 @@ struct ProgressView: View {
 
 #Preview {
     NavigationStack {
-        ProgressView()
+        LearningProgressView()
     }
 }

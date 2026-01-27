@@ -7,6 +7,7 @@
 
 import Foundation
 import Supabase
+import Auth
 
 /// Supabase 服務單例
 /// 負責初始化 Supabase Client 並提供全局訪問
@@ -16,11 +17,12 @@ class SupabaseService {
     let client: SupabaseClient
     
     private init() {
-        // 從 Info.plist 讀取配置
-        guard let supabaseURL = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_URL") as? String,
-              let supabaseKey = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_ANON_KEY") as? String,
-              let url = URL(string: supabaseURL) else {
-            fatalError("Supabase configuration not found in Info.plist")
+        // 從 Constants 讀取配置
+        let supabaseURL = Constants.Environment.supabaseURL
+        let supabaseKey = Constants.Environment.supabaseAnonKey
+        
+        guard let url = URL(string: supabaseURL), !supabaseKey.isEmpty else {
+            fatalError("Supabase configuration not found or invalid in Config.local.xcconfig")
         }
         
         self.client = SupabaseClient(
@@ -41,5 +43,12 @@ class SupabaseService {
         get async throws {
             try await client.auth.session.user.id
         }
+    }
+    
+    /// 獲取當前用戶（同步獲取快取的 session）
+    var currentUser: User? {
+        // 這裡我們依賴於 Supabase SDK 的快取機制
+        // 實際上 auth.session 是非同步的，但通常我們可以使用 AuthService 的狀態
+        AuthService.shared.currentUser
     }
 }

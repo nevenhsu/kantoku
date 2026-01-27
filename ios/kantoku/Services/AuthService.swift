@@ -8,6 +8,7 @@
 import Foundation
 import Supabase
 import Combine
+import Auth
 
 /// 認證服務
 /// 處理用戶註冊、登入、登出等操作

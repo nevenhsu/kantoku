@@ -51,12 +51,11 @@ struct TestConnectionView: View {
             
             Text("Supabase & n8n 連接測試")
                 .font(Constants.Typography.h2)
-                .foregroundStyle(Constants.Colors.textPrimary)
+                .foregroundStyle(Constants.Colors.primaryText)
             
             Text("測試後端服務連接狀態")
                 .font(Constants.Typography.body)
-                .foregroundStyle(Constants.Colors.textSecondary)
-                .multilineTextAlignment(.center)
+                .foregroundStyle(Constants.Colors.secondaryText)
         }
         .frame(maxWidth: .infinity)
         .padding(Constants.Spacing.lg)
@@ -67,7 +66,9 @@ struct TestConnectionView: View {
     // MARK: - 測試按鈕
     
     private var runTestButton: some View {
-        Button(action: runAllTests) {
+        Button {
+            runAllTests()
+        } label: {
             HStack {
                 if isRunning {
                     ProgressView()
@@ -81,7 +82,7 @@ struct TestConnectionView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: Constants.Button.heightLarge)
-            .background(isRunning ? Constants.Colors.textSecondary : Constants.Colors.primary)
+            .background(isRunning ? Constants.Colors.secondaryText : Constants.Colors.primary)
             .foregroundColor(.white)
             .cornerRadius(Constants.CornerRadius.button)
         }
@@ -111,16 +112,16 @@ struct TestConnectionView: View {
             HStack {
                 Image(systemName: allPassed ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
                     .font(.title)
-                    .foregroundStyle(allPassed ? Constants.Colors.success : Constants.Colors.warning)
+                    .foregroundStyle(allPassed ? Constants.Colors.green : Constants.Colors.orange)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("測試結果摘要")
                         .font(Constants.Typography.h3)
-                        .foregroundStyle(Constants.Colors.textPrimary)
+                        .foregroundStyle(Constants.Colors.primaryText)
                     
                     Text("\(successCount) / \(totalCount) 項測試通過")
                         .font(Constants.Typography.caption)
-                        .foregroundStyle(Constants.Colors.textSecondary)
+                        .foregroundStyle(Constants.Colors.secondaryText)
                 }
                 
                 Spacer()
@@ -136,7 +137,7 @@ struct TestConnectionView: View {
                     
                     // 進度
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(allPassed ? Constants.Colors.success : Constants.Colors.warning)
+                        .fill(allPassed ? Constants.Colors.green : Constants.Colors.orange)
                         .frame(width: geometry.size.width * CGFloat(successCount) / CGFloat(totalCount), height: 8)
                 }
             }
@@ -152,7 +153,9 @@ struct TestConnectionView: View {
         
         return VStack(alignment: .leading, spacing: Constants.Spacing.sm) {
             // 標題行
-            Button(action: { toggleExpanded(result.name) }) {
+            Button {
+                toggleExpanded(result.name)
+            } label: {
                 HStack {
                     Text(result.emoji)
                         .font(.title2)
@@ -160,11 +163,11 @@ struct TestConnectionView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(result.name)
                             .font(Constants.Typography.h4)
-                            .foregroundStyle(Constants.Colors.textPrimary)
+                            .foregroundStyle(Constants.Colors.primaryText)
                         
                         Text(result.message)
                             .font(Constants.Typography.caption)
-                            .foregroundStyle(result.success ? Constants.Colors.success : Constants.Colors.error)
+                            .foregroundStyle(result.success ? Constants.Colors.green : Constants.Colors.red)
                     }
                     
                     Spacer()
@@ -172,11 +175,11 @@ struct TestConnectionView: View {
                     VStack(alignment: .trailing, spacing: 4) {
                         Text(String(format: "%.2fs", result.duration))
                             .font(Constants.Typography.caption)
-                            .foregroundStyle(Constants.Colors.textSecondary)
+                            .foregroundStyle(Constants.Colors.secondaryText)
                         
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(.caption)
-                            .foregroundStyle(Constants.Colors.textSecondary)
+                            .foregroundStyle(Constants.Colors.secondaryText)
                     }
                 }
             }
@@ -189,12 +192,12 @@ struct TestConnectionView: View {
                 
                 Text("詳細資訊")
                     .font(Constants.Typography.caption)
-                    .foregroundStyle(Constants.Colors.textSecondary)
+                    .foregroundStyle(Constants.Colors.secondaryText)
                     .textCase(.uppercase)
                 
                 Text(details)
                     .font(Constants.Typography.small)
-                    .foregroundStyle(Constants.Colors.textPrimary)
+                    .foregroundStyle(Constants.Colors.primaryText)
                     .padding(Constants.Spacing.sm)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Constants.Colors.background)
@@ -215,7 +218,7 @@ struct TestConnectionView: View {
                     .foregroundStyle(Constants.Colors.primary)
                 Text("使用指南")
                     .font(Constants.Typography.h3)
-                    .foregroundStyle(Constants.Colors.textPrimary)
+                    .foregroundStyle(Constants.Colors.primaryText)
             }
             
             VStack(alignment: .leading, spacing: Constants.Spacing.sm) {
@@ -243,7 +246,7 @@ struct TestConnectionView: View {
             
             Text("測試項目說明")
                 .font(Constants.Typography.h4)
-                .foregroundStyle(Constants.Colors.textPrimary)
+                .foregroundStyle(Constants.Colors.primaryText)
                 .padding(.top, Constants.Spacing.xs)
             
             VStack(alignment: .leading, spacing: Constants.Spacing.sm) {
@@ -297,11 +300,11 @@ struct TestConnectionView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(Constants.Typography.body)
-                    .foregroundStyle(Constants.Colors.textPrimary)
+                    .foregroundStyle(Constants.Colors.primaryText)
                 
                 Text(description)
                     .font(Constants.Typography.caption)
-                    .foregroundStyle(Constants.Colors.textSecondary)
+                    .foregroundStyle(Constants.Colors.secondaryText)
             }
         }
     }
@@ -310,12 +313,12 @@ struct TestConnectionView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("• \(title)")
                 .font(Constants.Typography.small)
-                .foregroundStyle(Constants.Colors.textPrimary)
+                .foregroundStyle(Constants.Colors.primaryText)
                 .bold()
             
             Text(description)
                 .font(Constants.Typography.caption)
-                .foregroundStyle(Constants.Colors.textSecondary)
+                .foregroundStyle(Constants.Colors.secondaryText)
                 .padding(.leading, Constants.Spacing.md)
         }
     }
@@ -330,14 +333,16 @@ struct TestConnectionView: View {
         Task {
             let results = await testService.runAllTests()
             
-            await MainActor.run {
-                // 逐個顯示結果（動畫效果）
-                for result in results {
-                    testResults.append(result)
-                    try? await Task.sleep(nanoseconds: 200_000_000) // 0.2秒
+            // 逐個顯示結果（動畫效果）
+            for result in results {
+                await MainActor.run {
+                    self.testResults.append(result)
                 }
-                
-                isRunning = false
+                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2秒
+            }
+            
+            await MainActor.run {
+                self.isRunning = false
             }
         }
     }

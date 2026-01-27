@@ -40,7 +40,7 @@ class ConnectionTestService {
         
         do {
             // 測試基本的 health check
-            let response = try await supabase.database
+            try await supabase
                 .rpc("ping")
                 .execute()
             
@@ -51,7 +51,7 @@ class ConnectionTestService {
                 success: true,
                 message: "連接成功",
                 duration: duration,
-                details: "URL: \(supabase.supabaseURL.absoluteString)"
+                details: "URL: \(Constants.Environment.supabaseURL)"
             )
         } catch {
             let duration = Date().timeIntervalSince(startTime)
@@ -108,7 +108,7 @@ class ConnectionTestService {
         
         do {
             // 嘗試查詢 tasks 表（如果存在）
-            let response = try await supabase.database
+            try await supabase
                 .from("tasks")
                 .select()
                 .limit(1)
@@ -164,7 +164,7 @@ class ConnectionTestService {
                     success: true,
                     message: "Storage 可用",
                     duration: duration,
-                    details: "找到 submissions bucket (public: \(bucket.public))"
+                    details: "找到 submissions bucket (public: \(bucket.isPublic))"
                 )
             } else {
                 return TestResult(

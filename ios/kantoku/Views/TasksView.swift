@@ -53,7 +53,7 @@ struct TasksView: View {
         }
         .sheet(item: $selectedTask) { task in
             if let userId = authService.currentUser?.id {
-                TaskDetailView(task: task, userId: userId, viewModel: viewModel)
+                TaskDetailView(taskModel: task, userId: userId, viewModel: viewModel)
             }
         }
         .task {
@@ -103,7 +103,7 @@ struct TasksView: View {
                 Button(action: { viewModel.resetFilters() }) {
                     Text("清除全部")
                         .font(Constants.Typography.caption)
-                        .foregroundColor(Constants.Colors.danger)
+                        .foregroundColor(Constants.Colors.red)
                 }
                 .padding(.leading, Constants.Spacing.xs)
             }
@@ -142,7 +142,7 @@ struct TasksView: View {
                 .foregroundColor(Constants.Colors.secondaryText)
             
             if viewModel.selectedType != nil || viewModel.selectedStatus != nil || !viewModel.searchText.isEmpty {
-                PrimaryButton(text: "清除過濾器", style: .secondary) {
+                SecondaryButton(title: "清除過濾器") {
                     viewModel.resetFilters()
                 }
                 .frame(width: 200)

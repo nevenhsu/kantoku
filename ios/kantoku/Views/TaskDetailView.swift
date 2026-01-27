@@ -9,7 +9,7 @@ import SwiftUI
 
 /// 任務詳情視圖 - 根據不同任務類型顯示不同內容
 struct TaskDetailView: View {
-    let task: TaskModel
+    let taskModel: TaskModel
     let userId: UUID
     @ObservedObject var viewModel: TaskViewModel
     @Environment(\.dismiss) private var dismiss
@@ -29,12 +29,12 @@ struct TaskDetailView: View {
                     taskContent
                     
                     // Action Buttons
-                    if task.status == .pending {
+                    if taskModel.status == .pending {
                         actionButtons
                     }
                     
                     // Submission History (if exists)
-                    if task.status == .submitted || task.status == .passed || task.status == .failed {
+                    if taskModel.status == .submitted || taskModel.status == .passed || taskModel.status == .failed {
                         submissionHistorySection
                     }
                     
@@ -43,7 +43,7 @@ struct TaskDetailView: View {
                 .padding(Constants.Spacing.md)
             }
             .background(Constants.Colors.background)
-            .navigationTitle(task.taskType.displayName)
+            .navigationTitle(taskModel.taskType.displayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -55,14 +55,14 @@ struct TaskDetailView: View {
             .sheet(isPresented: $showAudioRecording) {
                 AudioRecordingView(
                     viewModel: submissionViewModel,
-                    task: task,
+                    taskModel: taskModel,
                     userId: userId
                 )
             }
             .sheet(isPresented: $showImageUpload) {
                 ImageUploadView(
                     viewModel: submissionViewModel,
-                    task: task,
+                    taskModel: taskModel,
                     userId: userId
                 )
             }
@@ -73,23 +73,23 @@ struct TaskDetailView: View {
     private var taskHeader: some View {
         VStack(alignment: .leading, spacing: Constants.Spacing.sm) {
             HStack {
-                Image(systemName: task.taskType.iconName)
+                Image(systemName: taskModel.taskType.iconName)
                     .font(.title2)
                     .foregroundColor(Constants.Colors.primary)
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(task.taskType.displayName)
+                    Text(taskModel.taskType.displayName)
                         .font(Constants.Typography.h3)
                         .foregroundColor(Constants.Colors.primaryText)
                     
-                    Text("到期日：\(formattedDate(task.dueDate))")
+                    Text("到期日：\(formattedDate(taskModel.dueDate))")
                         .font(Constants.Typography.caption)
                         .foregroundColor(Constants.Colors.secondaryText)
                 }
                 
                 Spacer()
                 
-                StatusBadge(status: task.status.displayName, type: .task)
+                TaskStatusBadge(status: taskModel.status)
             }
         }
         .padding(Constants.Spacing.md)
@@ -100,7 +100,7 @@ struct TaskDetailView: View {
     // MARK: - Task Content
     @ViewBuilder
     private var taskContent: some View {
-        switch task.content {
+        switch taskModel.content {
         case .kanaLearn(let content):
             KanaLearnContentView(content: content)
         case .kanaReview(let content):
@@ -117,8 +117,8 @@ struct TaskDetailView: View {
         VStack(spacing: Constants.Spacing.md) {
             // Submission Type Selection
             Text("選擇提交方式")
-                .font(Constants.Typography.headline)
-                .foregroundColor(Constants.Colors.textPrimary)
+                .font(Constants.Typography.h3)
+                .foregroundColor(Constants.Colors.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
             HStack(spacing: Constants.Spacing.md) {
@@ -129,16 +129,16 @@ struct TaskDetailView: View {
                     VStack(spacing: Constants.Spacing.sm) {
                         Image(systemName: "mic.circle.fill")
                             .font(.system(size: 40))
-                            .foregroundColor(Constants.Colors.accent)
+                            .foregroundColor(Constants.Colors.primaryAccent)
                         
                         Text("音訊提交")
                             .font(Constants.Typography.body)
-                            .foregroundColor(Constants.Colors.textPrimary)
+                            .foregroundColor(Constants.Colors.primaryText)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(Constants.Spacing.md)
                     .background(Constants.Colors.cardBackground)
-                    .cornerRadius(Constants.UI.cornerRadius)
+                    .cornerRadius(Constants.CornerRadius.medium)
                 }
                 
                 // Image Submission Button
@@ -148,26 +148,25 @@ struct TaskDetailView: View {
                     VStack(spacing: Constants.Spacing.sm) {
                         Image(systemName: "photo.circle.fill")
                             .font(.system(size: 40))
-                            .foregroundColor(Constants.Colors.secondary)
+                            .foregroundColor(Constants.Colors.orange)
                         
                         Text("圖片提交")
                             .font(Constants.Typography.body)
-                            .foregroundColor(Constants.Colors.textPrimary)
+                            .foregroundColor(Constants.Colors.primaryText)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(Constants.Spacing.md)
                     .background(Constants.Colors.cardBackground)
-                    .cornerRadius(Constants.UI.cornerRadius)
+                    .cornerRadius(Constants.CornerRadius.medium)
                 }
             }
             
             // Skip Button
-            PrimaryButton(
+            SecondaryButton(
                 title: "跳過此任務",
-                style: .secondary,
                 action: {
                     Task {
-                        await viewModel.completeTask(task.id)
+                        await viewModel.completeTask(taskModel)
                         dismiss()
                     }
                 }
@@ -175,15 +174,15 @@ struct TaskDetailView: View {
         }
         .padding(Constants.Spacing.md)
         .background(Constants.Colors.cardBackground)
-        .cornerRadius(Constants.UI.cornerRadius)
+        .cornerRadius(Constants.CornerRadius.medium)
     }
     
     // MARK: - Submission History Section
     private var submissionHistorySection: some View {
         VStack(alignment: .leading, spacing: Constants.Spacing.md) {
             Text("提交狀態")
-                .font(Constants.Typography.headline)
-                .foregroundColor(Constants.Colors.textPrimary)
+                .font(Constants.Typography.h3)
+                .foregroundColor(Constants.Colors.primaryText)
             
             HStack {
                 Image(systemName: statusIcon)
@@ -191,26 +190,26 @@ struct TaskDetailView: View {
                 
                 Text(statusText)
                     .font(Constants.Typography.body)
-                    .foregroundColor(Constants.Colors.textSecondary)
+                    .foregroundColor(Constants.Colors.secondaryText)
                 
                 Spacer()
                 
-                if task.status == .submitted {
+                if taskModel.status == .submitted {
                     ProgressView()
                 }
             }
             .padding(Constants.Spacing.md)
             .background(statusColor.opacity(0.1))
-            .cornerRadius(Constants.UI.cornerRadius)
+            .cornerRadius(Constants.CornerRadius.medium)
         }
         .padding(Constants.Spacing.md)
         .background(Constants.Colors.cardBackground)
-        .cornerRadius(Constants.UI.cornerRadius)
+        .cornerRadius(Constants.CornerRadius.medium)
     }
     
     // MARK: - Status Helpers
     private var statusIcon: String {
-        switch task.status {
+        switch taskModel.status {
         case .submitted:
             return "clock.fill"
         case .passed:
@@ -223,20 +222,20 @@ struct TaskDetailView: View {
     }
     
     private var statusColor: Color {
-        switch task.status {
+        switch taskModel.status {
         case .submitted:
-            return Constants.Colors.warning
+            return Constants.Colors.orange
         case .passed:
-            return Constants.Colors.success
+            return Constants.Colors.green
         case .failed:
-            return Constants.Colors.danger
+            return Constants.Colors.red
         default:
-            return Constants.Colors.textSecondary
+            return Constants.Colors.secondaryText
         }
     }
     
     private var statusText: String {
-        switch task.status {
+        switch taskModel.status {
         case .submitted:
             return "AI 正在審核中，請稍候..."
         case .passed:
@@ -437,7 +436,7 @@ struct VocabularyCard: View {
                 
                 Spacer()
                 
-                StatusBadge(status: word.level, type: .learning)
+                StatusBadge(text: word.level, color: Constants.Colors.primaryAccent)
             }
             
             Text(word.meaning)
@@ -480,7 +479,7 @@ extension KanaType {
 
 #Preview {
     TaskDetailView(
-        task: TaskModel(
+        taskModel: TaskModel(
             id: UUID(),
             userId: UUID(),
             taskType: .kanaLearn,

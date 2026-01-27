@@ -65,23 +65,23 @@ struct ReviewResultView: View {
             // Icon
             ZStack {
                 Circle()
-                    .fill(passed ? Constants.Colors.success.opacity(0.1) : Constants.Colors.danger.opacity(0.1))
+                    .fill(passed ? Constants.Colors.green.opacity(0.1) : Constants.Colors.red.opacity(0.1))
                     .frame(width: 120, height: 120)
                 
                 Image(systemName: passed ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .font(.system(size: 60))
-                    .foregroundColor(passed ? Constants.Colors.success : Constants.Colors.danger)
+                    .foregroundColor(passed ? Constants.Colors.green : Constants.Colors.red)
             }
             
             // Status Text
             Text(passed ? "恭喜通過！" : "未通過")
-                .font(Constants.Typography.title1)
-                .foregroundColor(Constants.Colors.textPrimary)
+                .font(Constants.Typography.h1)
+                .foregroundColor(Constants.Colors.primaryText)
             
             if !passed {
                 Text("請查看反饋並再試一次")
                     .font(Constants.Typography.body)
-                    .foregroundColor(Constants.Colors.textSecondary)
+                    .foregroundColor(Constants.Colors.secondaryText)
             }
         }
         .frame(maxWidth: .infinity)
@@ -95,7 +95,7 @@ struct ReviewResultView: View {
             VStack(alignment: .leading, spacing: Constants.Spacing.sm) {
                 Text("得分")
                     .font(Constants.Typography.caption)
-                    .foregroundColor(Constants.Colors.textSecondary)
+                    .foregroundColor(Constants.Colors.secondaryText)
                 
                 HStack(alignment: .firstTextBaseline, spacing: Constants.Spacing.xs) {
                     Text("\(score)")
@@ -103,8 +103,8 @@ struct ReviewResultView: View {
                         .foregroundColor(scoreColor)
                     
                     Text("/ 100")
-                        .font(Constants.Typography.title3)
-                        .foregroundColor(Constants.Colors.textSecondary)
+                        .font(Constants.Typography.h3)
+                        .foregroundColor(Constants.Colors.secondaryText)
                 }
             }
             
@@ -125,7 +125,7 @@ struct ReviewResultView: View {
         }
         .padding(Constants.Spacing.lg)
         .background(Constants.Colors.cardBackground)
-        .cornerRadius(Constants.UI.cornerRadius)
+        .cornerRadius(Constants.CornerRadius.medium)
     }
     
     // MARK: - Feedback Section
@@ -136,7 +136,7 @@ struct ReviewResultView: View {
             FeedbackCard(
                 title: "總體評價",
                 icon: "text.bubble",
-                iconColor: Constants.Colors.accent,
+                iconColor: Constants.Colors.primaryAccent,
                 content: feedback.overall
             )
             
@@ -145,7 +145,7 @@ struct ReviewResultView: View {
                 FeedbackCard(
                     title: "做得好的地方",
                     icon: "star.fill",
-                    iconColor: Constants.Colors.success,
+                    iconColor: Constants.Colors.green,
                     items: strengths
                 )
             }
@@ -155,7 +155,7 @@ struct ReviewResultView: View {
                 FeedbackCard(
                     title: "可以改進的地方",
                     icon: "exclamationmark.triangle.fill",
-                    iconColor: Constants.Colors.warning,
+                    iconColor: Constants.Colors.orange,
                     items: improvements
                 )
             }
@@ -165,23 +165,23 @@ struct ReviewResultView: View {
                 VStack(spacing: Constants.Spacing.sm) {
                     HStack {
                         Image(systemName: "heart.fill")
-                            .foregroundColor(Constants.Colors.accent)
+                            .foregroundColor(Constants.Colors.primaryAccent)
                         
                         Text("加油！")
-                            .font(Constants.Typography.headline)
-                            .foregroundColor(Constants.Colors.textPrimary)
+                            .font(Constants.Typography.h3)
+                            .foregroundColor(Constants.Colors.primaryText)
                         
                         Spacer()
                     }
                     
                     Text(encouragement)
                         .font(Constants.Typography.body)
-                        .foregroundColor(Constants.Colors.textSecondary)
+                        .foregroundColor(Constants.Colors.secondaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(Constants.Spacing.md)
-                .background(Constants.Colors.accent.opacity(0.1))
-                .cornerRadius(Constants.UI.cornerRadius)
+                .background(Constants.Colors.primaryAccent.opacity(0.1))
+                .cornerRadius(Constants.CornerRadius.medium)
             }
         }
     }
@@ -190,11 +190,11 @@ struct ReviewResultView: View {
     
     private var scoreColor: Color {
         if score >= 80 {
-            return Constants.Colors.success
+            return Constants.Colors.green
         } else if score >= 60 {
-            return Constants.Colors.warning
+            return Constants.Colors.orange
         } else {
-            return Constants.Colors.danger
+            return Constants.Colors.red
         }
     }
 }
@@ -216,8 +216,8 @@ struct FeedbackCard: View {
                     .foregroundColor(iconColor)
                 
                 Text(title)
-                    .font(Constants.Typography.headline)
-                    .foregroundColor(Constants.Colors.textPrimary)
+                    .font(Constants.Typography.h3)
+                    .foregroundColor(Constants.Colors.primaryText)
                 
                 Spacer()
             }
@@ -226,7 +226,7 @@ struct FeedbackCard: View {
             if let content = content {
                 Text(content)
                     .font(Constants.Typography.body)
-                    .foregroundColor(Constants.Colors.textSecondary)
+                    .foregroundColor(Constants.Colors.secondaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             
@@ -236,11 +236,11 @@ struct FeedbackCard: View {
                     ForEach(items, id: \.self) { item in
                         HStack(alignment: .top, spacing: Constants.Spacing.sm) {
                             Text("•")
-                                .foregroundColor(Constants.Colors.textSecondary)
+                                .foregroundColor(Constants.Colors.secondaryText)
                             
                             Text(item)
                                 .font(Constants.Typography.body)
-                                .foregroundColor(Constants.Colors.textSecondary)
+                                .foregroundColor(Constants.Colors.secondaryText)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
@@ -249,7 +249,7 @@ struct FeedbackCard: View {
         }
         .padding(Constants.Spacing.md)
         .background(Constants.Colors.cardBackground)
-        .cornerRadius(Constants.UI.cornerRadius)
+        .cornerRadius(Constants.CornerRadius.medium)
     }
 }
 

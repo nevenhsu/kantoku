@@ -7,9 +7,13 @@
 
 import Foundation
 import SwiftUI
-import UIKit
 import Combine
 import Supabase
+import Auth
+
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// 提交視圖模型
 /// 管理任務提交、AI 審核、輪詢狀態
@@ -38,10 +42,14 @@ class SubmissionViewModel: ObservableObject {
     
     // MARK: - Services
     
-    private let audioService = AudioService.shared
+    let audioService = AudioService.shared
     private let storageService = StorageService.shared
     private let apiService = APIService.shared
     private let supabase = SupabaseService.shared.client
+    
+    var isAudioPlaying: Bool {
+        audioService.isPlaying
+    }
     
     // MARK: - Timer
     
@@ -335,7 +343,7 @@ class SubmissionViewModel: ObservableObject {
     }
     
     deinit {
-        stopPolling()
+        pollingTimer?.invalidate()
         recordingTimer?.invalidate()
     }
 }

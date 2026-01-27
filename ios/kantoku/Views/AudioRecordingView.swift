@@ -11,7 +11,7 @@ import SwiftUI
 /// 提供錄音、播放、提交功能
 struct AudioRecordingView: View {
     @ObservedObject var viewModel: SubmissionViewModel
-    let task: TaskModel
+    let taskModel: TaskModel
     let userId: UUID
     @Environment(\.dismiss) private var dismiss
     
@@ -73,18 +73,18 @@ struct AudioRecordingView: View {
     
     private var taskInfoSection: some View {
         VStack(alignment: .leading, spacing: Constants.Spacing.sm) {
-            Text(task.taskType.displayName)
-                .font(Constants.Typography.headline)
-                .foregroundColor(Constants.Colors.textPrimary)
+            Text(taskModel.taskType.displayName)
+                .font(Constants.Typography.h3)
+                .foregroundColor(Constants.Colors.primaryText)
             
             Text("請大聲朗讀以下內容")
                 .font(Constants.Typography.body)
-                .foregroundColor(Constants.Colors.textSecondary)
+                .foregroundColor(Constants.Colors.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Constants.Spacing.md)
         .background(Constants.Colors.cardBackground)
-        .cornerRadius(Constants.UI.cornerRadius)
+        .cornerRadius(Constants.CornerRadius.medium)
     }
     
     // MARK: - Recording Control Section
@@ -94,11 +94,11 @@ struct AudioRecordingView: View {
             // Waveform Animation (Placeholder)
             ZStack {
                 Circle()
-                    .fill(viewModel.isRecording ? Constants.Colors.accent : Constants.Colors.cardBackground)
+                    .fill(viewModel.isRecording ? Constants.Colors.primaryAccent : Constants.Colors.cardBackground)
                     .frame(width: 200, height: 200)
                     .overlay {
                         Circle()
-                            .stroke(Constants.Colors.accent.opacity(0.3), lineWidth: 2)
+                            .stroke(Constants.Colors.primaryAccent.opacity(0.3), lineWidth: 2)
                             .scaleEffect(viewModel.isRecording ? 1.3 : 1.0)
                             .opacity(viewModel.isRecording ? 0 : 1)
                             .animation(
@@ -126,15 +126,15 @@ struct AudioRecordingView: View {
             // Duration
             if viewModel.isRecording || viewModel.recordedAudioURL != nil {
                 Text(viewModel.formattedDuration)
-                    .font(Constants.Typography.title2)
-                    .foregroundColor(Constants.Colors.textPrimary)
+                    .font(Constants.Typography.h2)
+                    .foregroundColor(Constants.Colors.primaryText)
                     .monospacedDigit()
             }
             
             // Instructions
             Text(viewModel.isRecording ? "點擊停止錄音" : "點擊開始錄音")
                 .font(Constants.Typography.body)
-                .foregroundColor(Constants.Colors.textSecondary)
+                .foregroundColor(Constants.Colors.secondaryText)
         }
         .padding(Constants.Spacing.lg)
     }
@@ -146,24 +146,24 @@ struct AudioRecordingView: View {
             HStack {
                 // Play/Pause Button
                 Button {
-                    if viewModel.audioService.isPlaying {
+                    if viewModel.isAudioPlaying {
                         viewModel.audioService.stopPlaying()
                     } else {
                         viewModel.playRecording()
                     }
                 } label: {
                     HStack {
-                        Image(systemName: viewModel.audioService.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                        Image(systemName: viewModel.isAudioPlaying ? "pause.circle.fill" : "play.circle.fill")
                             .font(.title2)
                         
-                        Text(viewModel.audioService.isPlaying ? "暫停" : "播放錄音")
+                        Text(viewModel.isAudioPlaying ? "暫停" : "播放錄音")
                             .font(Constants.Typography.body)
                     }
-                    .foregroundColor(Constants.Colors.accent)
+                    .foregroundColor(Constants.Colors.primaryAccent)
                     .padding(Constants.Spacing.md)
                     .frame(maxWidth: .infinity)
-                    .background(Constants.Colors.accent.opacity(0.1))
-                    .cornerRadius(Constants.UI.cornerRadius)
+                    .background(Constants.Colors.primaryAccent.opacity(0.1))
+                    .cornerRadius(Constants.CornerRadius.medium)
                 }
                 
                 // Delete Button
@@ -172,16 +172,16 @@ struct AudioRecordingView: View {
                 } label: {
                     Image(systemName: "trash")
                         .font(.title3)
-                        .foregroundColor(Constants.Colors.danger)
+                        .foregroundColor(Constants.Colors.red)
                         .padding(Constants.Spacing.md)
-                        .background(Constants.Colors.danger.opacity(0.1))
-                        .cornerRadius(Constants.UI.cornerRadius)
+                        .background(Constants.Colors.red.opacity(0.1))
+                        .cornerRadius(Constants.CornerRadius.medium)
                 }
             }
         }
         .padding(Constants.Spacing.md)
         .background(Constants.Colors.cardBackground)
-        .cornerRadius(Constants.UI.cornerRadius)
+        .cornerRadius(Constants.CornerRadius.medium)
     }
     
     // MARK: - Submit Section
@@ -192,7 +192,7 @@ struct AudioRecordingView: View {
             icon: "checkmark.circle.fill",
             action: {
                 Task {
-                    await viewModel.submitAudio(taskId: task.id, userId: userId)
+                    await viewModel.submitAudio(taskId: taskModel.id, userId: userId)
                     
                     // 如果提交成功，關閉視圖
                     if viewModel.successMessage != nil {
@@ -220,11 +220,11 @@ struct AudioRecordingView: View {
                 
                 VStack(spacing: Constants.Spacing.sm) {
                     Text(viewModel.isUploading ? "上傳中..." : "提交中...")
-                        .font(Constants.Typography.headline)
+                        .font(Constants.Typography.h3)
                         .foregroundColor(.white)
                     
                     if viewModel.isUploading {
-                        ProgressView(value: viewModel.uploadProgress)
+                        SwiftUI.ProgressView(value: viewModel.uploadProgress, total: 1.0)
                             .tint(.white)
                             .frame(width: 200)
                     }
@@ -232,7 +232,7 @@ struct AudioRecordingView: View {
             }
             .padding(Constants.Spacing.xl)
             .background(
-                RoundedRectangle(cornerRadius: Constants.UI.cornerRadius)
+                RoundedRectangle(cornerRadius: Constants.CornerRadius.medium)
                     .fill(Color.black.opacity(0.8))
             )
         }
@@ -244,13 +244,16 @@ struct AudioRecordingView: View {
 #Preview {
     AudioRecordingView(
         viewModel: SubmissionViewModel(),
-        task: TaskModel(
+        taskModel: TaskModel(
             id: UUID(),
+            userId: UUID(),
             taskType: .kanaLearn,
+            content: .kanaLearn(KanaLearnContent(kanaList: [], kanaType: .hiragana)),
             status: .pending,
-            content: .kana(KanaContent(kanaType: .hiragana, characters: [])),
+            dueDate: Date(),
+            skipped: false,
             createdAt: Date(),
-            dueDate: Date()
+            updatedAt: Date()
         ),
         userId: UUID()
     )

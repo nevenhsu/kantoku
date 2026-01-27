@@ -33,7 +33,7 @@ struct MainTabView: View {
             
             // Progress
             NavigationStack {
-                ProgressView()
+                LearningProgressView()
             }
             .tabItem {
                 Label("進度", systemImage: "chart.bar.fill")

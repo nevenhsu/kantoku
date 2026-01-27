@@ -7,6 +7,11 @@
 
 import Foundation
 import SwiftUI
+import Combine
+import Supabase
+import Auth
+import PostgREST
+import Storage
 
 /// 任務視圖模型 - 管理任務相關的業務邏輯和狀態
 @MainActor

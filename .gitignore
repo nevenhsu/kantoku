@@ -6,8 +6,6 @@
 n8n-data/
 
 # Xcode
-*.xcodeproj
-*.xcworkspace
 .DS_Store
 *.swp
 *.swo

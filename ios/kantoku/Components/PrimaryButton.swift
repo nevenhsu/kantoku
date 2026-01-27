@@ -10,17 +10,21 @@ import SwiftUI
 /// 主要按鈕樣式
 struct PrimaryButton: View {
     let title: String
+    var icon: String? = nil
     let action: () -> Void
     var isDisabled: Bool = false
     var isLoading: Bool = false
     
     var body: some View {
         Button(action: action) {
-            HStack {
+            HStack(spacing: 8) {
                 if isLoading {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                } else if let iconName = icon {
+                    Image(systemName: iconName)
                 }
+                
                 Text(title)
                     .font(Constants.Typography.body)
                     .fontWeight(.semibold)

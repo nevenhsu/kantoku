@@ -12,7 +12,7 @@ import PhotosUI
 /// 提供圖片選擇、預覽、提交功能
 struct ImageUploadView: View {
     @ObservedObject var viewModel: SubmissionViewModel
-    let task: TaskModel
+    let taskModel: TaskModel
     let userId: UUID
     @Environment(\.dismiss) private var dismiss
     
@@ -87,18 +87,18 @@ struct ImageUploadView: View {
     
     private var taskInfoSection: some View {
         VStack(alignment: .leading, spacing: Constants.Spacing.sm) {
-            Text(task.taskType.displayName)
-                .font(Constants.Typography.headline)
-                .foregroundColor(Constants.Colors.textPrimary)
+            Text(taskModel.taskType.displayName)
+                .font(Constants.Typography.h3)
+                .foregroundColor(Constants.Colors.primaryText)
             
             Text("請上傳手寫練習照片")
                 .font(Constants.Typography.body)
-                .foregroundColor(Constants.Colors.textSecondary)
+                .foregroundColor(Constants.Colors.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Constants.Spacing.md)
         .background(Constants.Colors.cardBackground)
-        .cornerRadius(Constants.UI.cornerRadius)
+        .cornerRadius(Constants.CornerRadius.medium)
     }
     
     // MARK: - Image Picker Section
@@ -112,22 +112,22 @@ struct ImageUploadView: View {
                 VStack(spacing: Constants.Spacing.md) {
                     ZStack {
                         Circle()
-                            .fill(Constants.Colors.accent.opacity(0.1))
+                            .fill(Constants.Colors.primaryAccent.opacity(0.1))
                             .frame(width: 120, height: 120)
                         
                         Image(systemName: "camera.fill")
                             .font(.system(size: 50))
-                            .foregroundColor(Constants.Colors.accent)
+                            .foregroundColor(Constants.Colors.primaryAccent)
                     }
                     
                     Text("拍照")
-                        .font(Constants.Typography.headline)
-                        .foregroundColor(Constants.Colors.textPrimary)
+                        .font(Constants.Typography.h3)
+                        .foregroundColor(Constants.Colors.primaryText)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(Constants.Spacing.xl)
                 .background(Constants.Colors.cardBackground)
-                .cornerRadius(Constants.UI.cornerRadius)
+                .cornerRadius(Constants.CornerRadius.medium)
             }
             
             // Photo Library Button
@@ -135,22 +135,22 @@ struct ImageUploadView: View {
                 VStack(spacing: Constants.Spacing.md) {
                     ZStack {
                         Circle()
-                            .fill(Constants.Colors.secondary.opacity(0.1))
+                            .fill(Constants.Colors.orange.opacity(0.1))
                             .frame(width: 120, height: 120)
                         
                         Image(systemName: "photo.on.rectangle")
                             .font(.system(size: 50))
-                            .foregroundColor(Constants.Colors.secondary)
+                            .foregroundColor(Constants.Colors.orange)
                     }
                     
                     Text("從相簿選擇")
-                        .font(Constants.Typography.headline)
-                        .foregroundColor(Constants.Colors.textPrimary)
+                        .font(Constants.Typography.h3)
+                        .foregroundColor(Constants.Colors.primaryText)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(Constants.Spacing.xl)
                 .background(Constants.Colors.cardBackground)
-                .cornerRadius(Constants.UI.cornerRadius)
+                .cornerRadius(Constants.CornerRadius.medium)
             }
         }
     }
@@ -165,7 +165,7 @@ struct ImageUploadView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(maxHeight: 400)
-                    .cornerRadius(Constants.UI.cornerRadius)
+                    .cornerRadius(Constants.CornerRadius.medium)
             }
             
             // Action Buttons
@@ -179,11 +179,11 @@ struct ImageUploadView: View {
                         Text("重新選擇")
                     }
                     .font(Constants.Typography.body)
-                    .foregroundColor(Constants.Colors.accent)
+                    .foregroundColor(Constants.Colors.primaryAccent)
                     .padding(Constants.Spacing.md)
                     .frame(maxWidth: .infinity)
-                    .background(Constants.Colors.accent.opacity(0.1))
-                    .cornerRadius(Constants.UI.cornerRadius)
+                    .background(Constants.Colors.primaryAccent.opacity(0.1))
+                    .cornerRadius(Constants.CornerRadius.medium)
                 }
                 
                 // Delete Button
@@ -192,16 +192,16 @@ struct ImageUploadView: View {
                 } label: {
                     Image(systemName: "trash")
                         .font(.title3)
-                        .foregroundColor(Constants.Colors.danger)
+                        .foregroundColor(Constants.Colors.red)
                         .padding(Constants.Spacing.md)
-                        .background(Constants.Colors.danger.opacity(0.1))
-                        .cornerRadius(Constants.UI.cornerRadius)
+                        .background(Constants.Colors.red.opacity(0.1))
+                        .cornerRadius(Constants.CornerRadius.medium)
                 }
             }
         }
         .padding(Constants.Spacing.md)
         .background(Constants.Colors.cardBackground)
-        .cornerRadius(Constants.UI.cornerRadius)
+        .cornerRadius(Constants.CornerRadius.medium)
     }
     
     // MARK: - Submit Section
@@ -212,7 +212,7 @@ struct ImageUploadView: View {
             icon: "checkmark.circle.fill",
             action: {
                 Task {
-                    await viewModel.submitImage(taskId: task.id, userId: userId)
+                    await viewModel.submitImage(taskId: taskModel.id, userId: userId)
                     
                     // 如果提交成功，關閉視圖
                     if viewModel.successMessage != nil {
@@ -240,11 +240,11 @@ struct ImageUploadView: View {
                 
                 VStack(spacing: Constants.Spacing.sm) {
                     Text(viewModel.isUploading ? "上傳中..." : "提交中...")
-                        .font(Constants.Typography.headline)
+                        .font(Constants.Typography.h3)
                         .foregroundColor(.white)
                     
                     if viewModel.isUploading {
-                        ProgressView(value: viewModel.uploadProgress)
+                        SwiftUI.ProgressView(value: viewModel.uploadProgress, total: 1.0)
                             .tint(.white)
                             .frame(width: 200)
                     }
@@ -252,7 +252,7 @@ struct ImageUploadView: View {
             }
             .padding(Constants.Spacing.xl)
             .background(
-                RoundedRectangle(cornerRadius: Constants.UI.cornerRadius)
+                RoundedRectangle(cornerRadius: Constants.CornerRadius.medium)
                     .fill(Color.black.opacity(0.8))
             )
         }
@@ -304,13 +304,16 @@ struct ImagePicker: UIViewControllerRepresentable {
 #Preview {
     ImageUploadView(
         viewModel: SubmissionViewModel(),
-        task: TaskModel(
+        taskModel: TaskModel(
             id: UUID(),
+            userId: UUID(),
             taskType: .kanaLearn,
+            content: .kanaLearn(KanaLearnContent(kanaList: [], kanaType: .hiragana)),
             status: .pending,
-            content: .kana(KanaContent(kanaType: .hiragana, characters: [])),
+            dueDate: Date(),
+            skipped: false,
             createdAt: Date(),
-            dueDate: Date()
+            updatedAt: Date()
         ),
         userId: UUID()
     )

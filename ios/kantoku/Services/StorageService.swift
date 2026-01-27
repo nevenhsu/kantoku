@@ -32,16 +32,13 @@ class StorageService {
         
         let fileData = try Data(contentsOf: fileURL)
         
-        let file = File(
-            name: fileName,
-            data: fileData,
-            fileName: fileName,
-            contentType: "audio/m4a"
-        )
-        
         try await supabase.storage
             .from(bucketName)
-            .upload(path: fileName, file: file, options: FileOptions(upsert: true))
+            .upload(
+                path: fileName,
+                file: fileData,
+                options: FileOptions(cacheControl: "3600", contentType: "audio/m4a", upsert: true)
+            )
         
         return fileName
     }
@@ -55,16 +52,13 @@ class StorageService {
     func uploadImage(imageData: Data, userId: UUID, taskId: UUID) async throws -> String {
         let fileName = "\(userId.uuidString)/images/\(taskId.uuidString)_\(Date().timeIntervalSince1970).jpg"
         
-        let file = File(
-            name: fileName,
-            data: imageData,
-            fileName: fileName,
-            contentType: "image/jpeg"
-        )
-        
         try await supabase.storage
             .from(bucketName)
-            .upload(path: fileName, file: file, options: FileOptions(upsert: true))
+            .upload(
+                path: fileName,
+                file: imageData,
+                options: FileOptions(cacheControl: "3600", contentType: "image/jpeg", upsert: true)
+            )
         
         return fileName
     }
