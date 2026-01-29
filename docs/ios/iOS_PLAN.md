@@ -23,31 +23,31 @@ ios/kantoku/
 
 ## 🚀 Implementation Roadmap
 
-### Phase 1: Infrastructure & Foundation
-- [ ] Initialize directory structure
-- [ ] Setup `Constants.swift` (Colors, Typography, Spacing)
-- [ ] Configure Supabase SDK and Environment variables
-- [ ] Create `AuthService` and `SupabaseService`
+### Phase 1: Infrastructure & Foundation ✅
+- [x] Initialize directory structure
+- [x] Setup `Constants.swift` (Colors, Typography, Spacing)
+- [x] Configure Supabase SDK and Environment variables
+- [x] Create `AuthService` and `SupabaseService`
 
-### Phase 2: Core Model & Component Library
-- [ ] Define Models: `User`, `Task`, `Submission`, `Review`, `Test`
-- [ ] Implement Base Components: `PrimaryButton`, `TaskCard`, `StatusBadge`, `InputField`
-- [ ] Setup Navigation (Tab-based with `NavigationStack`)
+### Phase 2: Core Model & Component Library ✅
+- [x] Define Models: `User`, `Task`, `Submission`, `Review`, `Test`
+- [x] Implement Base Components: `PrimaryButton`, `TaskCard`, `StatusBadge`, `InputField`
+- [x] Setup Navigation (Tab-based with `NavigationStack`)
 
-### Phase 3: Authentication & Onboarding (P0)
-- [ ] Login / Sign up views
-- [ ] Auth ViewModel with session management
-- [ ] Basic Profile setup
+### Phase 3: Authentication & Onboarding (P0) ✅
+- [x] Login / Sign up views
+- [x] Auth ViewModel with session management
+- [x] Basic Profile setup
 
-### Phase 4: Dashboard & Task Management (P0)
-- [ ] Dashboard View: Summary cards & Daily progress
-- [ ] Task List & Detail views
-- [ ] Task filtering and categorization
+### Phase 4: Dashboard & Task Management (P0) ✅
+- [x] Dashboard View: Summary cards & Daily progress
+- [x] Task List & Detail views
+- [x] Task filtering and categorization
 
-### Phase 5: Submission & AI Review (P1)
-- [ ] Audio/Video recording interface
-- [ ] File upload to Supabase Storage
-- [ ] Polling/Webhook integration for AI Review results
+### Phase 5: Submission & AI Review (P1) ✅
+- [x] Audio/Video recording interface
+- [x] File upload to Supabase Storage
+- [x] Polling/Webhook integration for AI Review results
 
 ### Phase 6: Progress & Statistics (P1)
 - [ ] Swift Charts integration for performance tracking
