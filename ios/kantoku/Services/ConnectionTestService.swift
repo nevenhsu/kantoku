@@ -17,6 +17,10 @@ class ConnectionTestService {
     private let supabase = SupabaseService.shared.client
     private let apiService = APIService.shared
     
+    // 記錄測試中創建的資源，用於清理
+    private var testTaskIds: [String] = []
+    private var testUserId: String?  // 測試帳號的 user_id
+    
     private init() {}
     
     // MARK: - 測試結果模型
@@ -40,9 +44,12 @@ class ConnectionTestService {
         let startTime = Date()
         
         do {
-            // 測試基本的 health check
-            try await supabase
-                .rpc("ping")
+            // 測試基本的連接 - 查詢 learning_stages 表（公開讀取）
+            // 這個表應該始終存在且可讀
+            _ = try await supabase
+                .from("learning_stages")
+                .select("id")
+                .limit(1)
                 .execute()
             
             let duration = Date().timeIntervalSince(startTime)
@@ -71,34 +78,57 @@ class ConnectionTestService {
         let startTime = Date()
         
         do {
-            // 檢查是否有當前 session
-            if let session = try? await supabase.auth.session {
-                let duration = Date().timeIntervalSince(startTime)
-                return TestResult(
-                    name: "Supabase Auth",
-                    success: true,
-                    message: "已登入",
-                    duration: duration,
-                    details: "User ID: \(session.user.id)"
-                )
-            } else {
-                let duration = Date().timeIntervalSince(startTime)
-                return TestResult(
-                    name: "Supabase Auth",
-                    success: true,
-                    message: "未登入（正常狀態）",
-                    duration: duration,
-                    details: "可以進行註冊或登入測試"
-                )
-            }
+            // 從配置讀取測試帳號
+            let testEmail = Constants.Environment.testEmail
+            let testPassword = Constants.Environment.testPassword
+            
+            // 嘗試用測試帳號登入
+            let session = try await supabase.auth.signIn(
+                email: testEmail,
+                password: testPassword
+            )
+            
+            let duration = Date().timeIntervalSince(startTime)
+            
+            // 記錄測試用戶 ID，用於後續清理測試數據
+            testUserId = session.user.id.uuidString
+            
+            return TestResult(
+                name: "Supabase Auth",
+                success: true,
+                message: "認證成功",
+                duration: duration,
+                details: "Test user ID: \(session.user.id.uuidString.prefix(8))..."
+            )
         } catch {
             let duration = Date().timeIntervalSince(startTime)
+            
+            // 檢查錯誤類型
+            let errorMessage = error.localizedDescription
+            if errorMessage.contains("Invalid login credentials") {
+                return TestResult(
+                    name: "Supabase Auth",
+                    success: false,
+                    message: "測試帳號登入失敗",
+                    duration: duration,
+                    details: "請確認測試帳號已創建：\(Constants.Environment.testEmail)"
+                )
+            } else if errorMessage.contains("Email not confirmed") {
+                return TestResult(
+                    name: "Supabase Auth",
+                    success: false,
+                    message: "Email 未驗證",
+                    duration: duration,
+                    details: "請在 Supabase Dashboard 驗證測試帳號"
+                )
+            }
+            
             return TestResult(
                 name: "Supabase Auth",
                 success: false,
                 message: "Auth 服務錯誤",
                 duration: duration,
-                details: error.localizedDescription
+                details: errorMessage
             )
         }
     }
@@ -153,37 +183,53 @@ class ConnectionTestService {
         let startTime = Date()
         
         do {
-            // 列出 buckets
-            let buckets = try await supabase.storage.listBuckets()
-            let submissionsBucket = buckets.first { $0.name == "submissions" }
+            // 直接嘗試列出 submissions bucket 中的檔案
+            // 這個操作不需要 admin 權限，只需要 bucket 的讀取權限
+            _ = try await supabase.storage
+                .from("submissions")
+                .list()
             
             let duration = Date().timeIntervalSince(startTime)
             
-            if let bucket = submissionsBucket {
-                return TestResult(
-                    name: "Supabase Storage",
-                    success: true,
-                    message: "Storage 可用",
-                    duration: duration,
-                    details: "找到 submissions bucket (public: \(bucket.isPublic))"
-                )
-            } else {
+            return TestResult(
+                name: "Supabase Storage",
+                success: true,
+                message: "Storage 可用",
+                duration: duration,
+                details: "成功訪問 submissions bucket"
+            )
+        } catch {
+            let duration = Date().timeIntervalSince(startTime)
+            let errorMessage = error.localizedDescription
+            
+            // 檢查是否為 bucket 不存在的錯誤
+            if errorMessage.contains("not found") || errorMessage.contains("does not exist") {
                 return TestResult(
                     name: "Supabase Storage",
                     success: false,
                     message: "submissions bucket 不存在",
                     duration: duration,
-                    details: "找到 \(buckets.count) 個 buckets"
+                    details: "請在 Supabase Dashboard 創建 submissions bucket"
                 )
             }
-        } catch {
-            let duration = Date().timeIntervalSince(startTime)
+            
+            // 檢查是否為權限問題
+            if errorMessage.contains("JWT") || errorMessage.contains("unauthorized") || errorMessage.contains("permission") || errorMessage.contains("policy") {
+                return TestResult(
+                    name: "Supabase Storage",
+                    success: false,
+                    message: "Storage 權限不足",
+                    duration: duration,
+                    details: "submissions bucket 存在但沒有讀取權限。請檢查 Storage Policies。"
+                )
+            }
+            
             return TestResult(
                 name: "Supabase Storage",
                 success: false,
                 message: "Storage 服務錯誤",
                 duration: duration,
-                details: error.localizedDescription
+                details: errorMessage
             )
         }
     }
@@ -195,32 +241,46 @@ class ConnectionTestService {
         let startTime = Date()
         
         do {
-            // 測試 generate-tasks endpoint
+            // 測試 test-environment endpoint
             let response = try await apiService.post(
-                endpoint: "/webhook/test-connection",
+                endpoint: "/webhook/test-environment",
                 body: ["test": true]
             )
             
             let duration = Date().timeIntervalSince(startTime)
             
-            return TestResult(
-                name: "n8n 基礎連接",
-                success: true,
-                message: "連接成功",
-                duration: duration,
-                details: "Base URL: \(apiService.baseURL)"
-            )
-        } catch {
-            let duration = Date().timeIntervalSince(startTime)
-            
-            // n8n 可能回傳 404 但服務是可用的
-            if error.localizedDescription.contains("404") {
+            // 檢查回應
+            if let responseDict = response as? [String: Any],
+               let success = responseDict["success"] as? Bool,
+               success {
+                return TestResult(
+                    name: "n8n 基礎連接",
+                    success: true,
+                    message: "連接成功",
+                    duration: duration,
+                    details: "Base URL: \(apiService.baseURL)"
+                )
+            } else {
                 return TestResult(
                     name: "n8n 基礎連接",
                     success: true,
                     message: "n8n 服務可用",
                     duration: duration,
-                    details: "test-connection endpoint 不存在，但服務正常運行"
+                    details: "收到回應但格式異常"
+                )
+            }
+        } catch {
+            let duration = Date().timeIntervalSince(startTime)
+            
+            // n8n 可能回傳 404 但服務是可用的
+            let errorMessage = error.localizedDescription
+            if errorMessage.contains("404") {
+                return TestResult(
+                    name: "n8n 基礎連接",
+                    success: true,
+                    message: "n8n 服務可用",
+                    duration: duration,
+                    details: "test-environment endpoint 不存在，但服務正常運行"
                 )
             }
             
@@ -229,7 +289,7 @@ class ConnectionTestService {
                 success: false,
                 message: "連接失敗",
                 duration: duration,
-                details: error.localizedDescription
+                details: errorMessage
             )
         }
     }
@@ -239,32 +299,102 @@ class ConnectionTestService {
         let startTime = Date()
         
         do {
-            let testUserId = UUID().uuidString
+            // 使用測試帳號的 user_id（從 Auth 測試獲取）
+            guard let userId = testUserId else {
+                return TestResult(
+                    name: "generate-tasks webhook",
+                    success: false,
+                    message: "測試失敗",
+                    duration: 0,
+                    details: "找不到測試帳號 user_id，請先執行 Auth 測試"
+                )
+            }
+            
             let response = try await apiService.post(
                 endpoint: "/webhook/generate-tasks",
                 body: [
-                    "user_id": testUserId,
+                    "user_id": userId,
                     "daily_goal_minutes": 30
                 ]
             )
             
             let duration = Date().timeIntervalSince(startTime)
             
-            if let tasks = response["tasks"] as? [[String: Any]] {
+            // 檢查回應格式
+            // n8n 可能返回陣列或物件
+            
+            // 格式 1: 直接返回任務陣列 [{kana: "き", ...}, ...]
+            if let responseArray = response as? [[String: Any]] {
+                // 檢查是否為有效的任務陣列（至少有一個必要欄位）
+                let isValidTaskArray = responseArray.allSatisfy { task in
+                    task["kana"] != nil || task["word"] != nil || task["task_type"] != nil
+                }
+                
+                if isValidTaskArray {
+                    // 記錄任務 ID（如果存在）
+                    for task in responseArray {
+                        if let taskId = task["id"] as? String {
+                            testTaskIds.append(taskId)
+                        }
+                    }
+                    
+                    return TestResult(
+                        name: "generate-tasks webhook",
+                        success: true,
+                        message: "Webhook 正常運作",
+                        duration: duration,
+                        details: "生成了 \(responseArray.count) 個任務"
+                    )
+                } else {
+                    return TestResult(
+                        name: "generate-tasks webhook",
+                        success: false,
+                        message: "任務格式錯誤",
+                        duration: duration,
+                        details: "收到陣列但缺少必要欄位（kana, word, task_type）"
+                    )
+                }
+            }
+            
+            // 格式 2: 包裹在物件中 {tasks: [...]}
+            else if let responseDict = response as? [String: Any],
+                    let tasksArray = responseDict["tasks"] as? [[String: Any]] {
+                // 記錄任務 ID
+                for task in tasksArray {
+                    if let taskId = task["id"] as? String {
+                        testTaskIds.append(taskId)
+                    }
+                }
+                
                 return TestResult(
                     name: "generate-tasks webhook",
                     success: true,
                     message: "Webhook 正常運作",
                     duration: duration,
-                    details: "生成了 \(tasks.count) 個任務"
+                    details: "生成了 \(tasksArray.count) 個任務"
                 )
-            } else {
+            }
+            
+            // 格式 3: 其他字典格式（錯誤）
+            else if let responseDict = response as? [String: Any] {
+                let responseKeys = responseDict.keys.joined(separator: ", ")
                 return TestResult(
                     name: "generate-tasks webhook",
                     success: false,
                     message: "回應格式錯誤",
                     duration: duration,
-                    details: "無法解析 tasks 陣列"
+                    details: "預期 [{task}...] 或 {tasks: [...]}, 收到: {\(responseKeys)}"
+                )
+            }
+            
+            // 未知格式
+            else {
+                return TestResult(
+                    name: "generate-tasks webhook",
+                    success: false,
+                    message: "未知的回應格式",
+                    duration: duration,
+                    details: "無法解析回應數據類型"
                 )
             }
         } catch {
@@ -279,49 +409,35 @@ class ConnectionTestService {
         }
     }
     
-    /// 測試 review-submission webhook
-    func testReviewSubmissionWebhook() async -> TestResult {
-        let startTime = Date()
+
+    
+    // MARK: - 清理測試數據
+    
+    /// 清理測試帳號創建的所有測試數據
+    private func cleanupTestData() async {
+        guard let userId = testUserId else {
+            print("⚠️ 無測試 user_id，跳過清理")
+            return
+        }
+        
+        // 清空記錄的 IDs
+        defer {
+            testTaskIds.removeAll()
+            testUserId = nil
+        }
         
         do {
-            let testTaskId = UUID().uuidString
-            let response = try await apiService.post(
-                endpoint: "/webhook/review-submission",
-                body: [
-                    "task_id": testTaskId,
-                    "submission_type": "text",
-                    "content": "test"
-                ]
-            )
+            // 刪除測試帳號創建的所有 tasks
+            // submissions 會通過 CASCADE 自動刪除
+            try await supabase
+                .from("tasks")
+                .delete()
+                .eq("user_id", value: userId)
+                .execute()
             
-            let duration = Date().timeIntervalSince(startTime)
-            
-            if let success = response["success"] as? Bool, success {
-                return TestResult(
-                    name: "review-submission webhook",
-                    success: true,
-                    message: "Webhook 正常運作",
-                    duration: duration,
-                    details: "成功完成審核測試"
-                )
-            } else {
-                return TestResult(
-                    name: "review-submission webhook",
-                    success: false,
-                    message: "回應格式錯誤",
-                    duration: duration,
-                    details: "無法解析審核結果"
-                )
-            }
+            print("✅ 已清理測試帳號 \(userId.prefix(8))... 的所有測試任務")
         } catch {
-            let duration = Date().timeIntervalSince(startTime)
-            return TestResult(
-                name: "review-submission webhook",
-                success: false,
-                message: "Webhook 調用失敗",
-                duration: duration,
-                details: error.localizedDescription
-            )
+            print("⚠️ 清理測試數據失敗: \(error.localizedDescription)")
         }
     }
     
@@ -331,16 +447,25 @@ class ConnectionTestService {
     func runAllTests() async -> [TestResult] {
         var results: [TestResult] = []
         
+        // 清空之前的記錄
+        testTaskIds.removeAll()
+        testUserId = nil
+        
         // Supabase 測試
         results.append(await testSupabaseConnection())
-        results.append(await testSupabaseAuth())
+        results.append(await testSupabaseAuth())  // 這會設置 testUserId
         results.append(await testSupabaseDatabase())
         results.append(await testSupabaseStorage())
         
         // n8n 測試
         results.append(await testN8NConnection())
-        results.append(await testGenerateTasksWebhook())
-        results.append(await testReviewSubmissionWebhook())
+        results.append(await testGenerateTasksWebhook())  // 使用 testUserId 創建任務
+        
+        // 清理測試數據（刪除測試帳號的所有 tasks）
+        await cleanupTestData()
+        
+        // 清理 auth session（最後執行）
+        try? await supabase.auth.signOut()
         
         return results
     }

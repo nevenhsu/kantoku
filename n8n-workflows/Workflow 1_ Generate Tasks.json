@@ -26,8 +26,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2080,
-        16
+        2128,
+        -96
       ],
       "id": "a2b48d5b-08ce-4e52-bb67-b653bb7e8d4b",
       "name": "Respond to Webhook"
@@ -104,8 +104,21 @@
         "operation": "getAll",
         "tableId": "kana_progress",
         "limit": 5,
-        "filterType": "string",
-        "filterString": "=user_id=eq.{{ $('Webhook').item.json.body.user_id }}&next_review=lte.{{ new Date().toISOString() }}"
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Webhook').item.json.body.user_id }}"
+            },
+            {
+              "keyName": "next_review",
+              "condition": "lte",
+              "keyValue": "={{ $now }}"
+            }
+          ]
+        }
       },
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
@@ -402,6 +415,17 @@
           }
         ]
       ]
+    },
+    "Code - Prepare Review Kana": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -409,7 +433,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "ebf06214-11f1-4f58-a04d-f04181d19481",
+  "versionId": "692e7d8b-a1d7-46db-a3a0-35ef7b0d3774",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "bd9282013e8dda099718f0b96696ffc2c8915d0a6f6124fc502a7eff313b0320"

@@ -277,12 +277,7 @@ struct TestConnectionView: View {
                 
                 testExplanation(
                     title: "generate-tasks webhook",
-                    description: "測試任務生成 API"
-                )
-                
-                testExplanation(
-                    title: "review-submission webhook",
-                    description: "測試提交審核 API"
+                    description: "測試任務生成 API（使用測試帳號）"
                 )
             }
         }

@@ -1,0 +1,9 @@
+// Production Environment Configuration
+// For production deployment (when you have a production n8n server)
+
+// Production n8n URL (update this when you deploy to production)
+// Example: https://n8n.yourdomain.com
+N8N_BASE_URL = http:/$()/localhost:5678
+
+// Environment indicator
+ENVIRONMENT = production

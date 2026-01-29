@@ -46,7 +46,7 @@ class APIService {
     }
     
     /// 通用的 POST 請求（用於測試）
-    func post(endpoint: String, body: [String: Any]) async throws -> [String: Any] {
+    func post(endpoint: String, body: [String: Any]) async throws -> Any {
         let url = URL(string: "\(baseURL)\(endpoint)")!
         
         var request = URLRequest(url: url)
@@ -54,13 +54,31 @@ class APIService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
         
-        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            return json
-        } else {
-            throw NSError(domain: "APIService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response format"])
+        // 檢查 HTTP 狀態碼
+        if let httpResponse = response as? HTTPURLResponse {
+            guard (200...299).contains(httpResponse.statusCode) else {
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                throw NSError(domain: "APIService", code: httpResponse.statusCode, 
+                            userInfo: [NSLocalizedDescriptionKey: "HTTP \(httpResponse.statusCode): \(errorMessage)"])
+            }
         }
+        
+        // 檢查是否為空響應
+        guard !data.isEmpty else {
+            throw NSError(domain: "APIService", code: -1, 
+                        userInfo: [NSLocalizedDescriptionKey: "Empty response from server. Please ensure the n8n workflow ends with a 'Respond to Webhook' node."])
+        }
+        
+        // 嘗試解析 JSON（可能是物件或陣列）
+        guard let json = try? JSONSerialization.jsonObject(with: data) else {
+            let responseString = String(data: data, encoding: .utf8) ?? "Unable to decode"
+            throw NSError(domain: "APIService", code: -1, 
+                        userInfo: [NSLocalizedDescriptionKey: "Invalid JSON: \(responseString)"])
+        }
+        
+        return json
     }
     
     // MARK: - Submission Review

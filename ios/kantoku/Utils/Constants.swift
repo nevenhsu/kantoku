@@ -199,9 +199,22 @@ enum Constants {
     
     // MARK: - Environment
     enum Environment {
+        // n8n URL with fallback to Mac IP (localhost won't work in iOS Simulator)
         static let n8nBaseURL = Bundle.main.object(forInfoDictionaryKey: "N8N_BASE_URL") as? String ?? "http://localhost:5678"
         static let supabaseURL = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_URL") as? String ?? ""
         static let supabaseAnonKey = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_ANON_KEY") as? String ?? ""
+        static let testEmail = Bundle.main.object(forInfoDictionaryKey: "TEST_EMAIL") as? String ?? ""
+        static let testPassword = Bundle.main.object(forInfoDictionaryKey: "TEST_PASSWORD") as? String ?? ""
+        static let environment = Bundle.main.object(forInfoDictionaryKey: "ENVIRONMENT") as? String ?? "development"
+        
+        // Helper to check current environment
+        static var isDevelopment: Bool {
+            environment == "development"
+        }
+        
+        static var isProduction: Bool {
+            environment == "production"
+        }
     }
     
     // MARK: - API Endpoints

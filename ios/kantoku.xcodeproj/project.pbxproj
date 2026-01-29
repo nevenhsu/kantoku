@@ -155,7 +155,7 @@
 /* Begin XCBuildConfiguration section */
 		0B1DF2B02F232A8500D106F7 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0B6693392F28C68D0039985F /* Config.xcconfig */;
+			baseConfigurationReference = 0B6693392F28C68D0039985F /* kantoku/Resources/Config.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -217,7 +217,7 @@
 		};
 		0B1DF2B12F232A8500D106F7 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0B6693392F28C68D0039985F /* Config.xcconfig */;
+			baseConfigurationReference = 0B6693392F28C68D0039985F /* kantoku/Resources/Config.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -271,7 +271,7 @@
 		};
 		0B1DF2B32F232A8500D106F7 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0B6693392F28C68D0039985F /* Config.xcconfig */;
+			baseConfigurationReference = 0B6693392F28C68D0039985F /* kantoku/Resources/Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -315,7 +315,7 @@
 		};
 		0B1DF2B42F232A8500D106F7 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0B6693392F28C68D0039985F /* Config.xcconfig */;
+			baseConfigurationReference = 0B6693392F28C68D0039985F /* kantoku/Resources/Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

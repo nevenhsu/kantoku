@@ -1,0 +1,14 @@
+// Development Environment Configuration
+// For local testing on Mac with iOS Simulator
+
+// n8n running on Mac (accessible from iOS Simulator)
+// Using Mac's local hostname - more stable than IP address
+// Hostname: neven.local (resolved via Bonjour/mDNS)
+N8N_BASE_URL = http:/$()/neven.local:5678
+
+// Test account credentials (for connection testing)
+TEST_EMAIL = [EMAIL_ADDRESS]
+TEST_PASSWORD = [PASSWORD]
+
+// Environment indicator
+ENVIRONMENT = development

@@ -33,6 +33,12 @@
 	<string>$(SUPABASE_ANON_KEY)</string>
 	<key>N8N_BASE_URL</key>
 	<string>$(N8N_BASE_URL)</string>
+	<key>TEST_EMAIL</key>
+	<string>$(TEST_EMAIL)</string>
+	<key>TEST_PASSWORD</key>
+	<string>$(TEST_PASSWORD)</string>
+	<key>ENVIRONMENT</key>
+	<string>$(ENVIRONMENT)</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>我們需要使用麥克風來錄製您的發音以進行學習評估</string>
 	<key>NSCameraUsageDescription</key>

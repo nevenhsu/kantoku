@@ -6,6 +6,12 @@ SUPABASE_URL = YOUR_SUPABASE_URL
 SUPABASE_ANON_KEY = YOUR_SUPABASE_ANON_KEY
 N8N_BASE_URL = http:/$()/localhost:5678
 
+// Test account credentials (for connection testing)
+// Create this test user in your Supabase project
+TEST_EMAIL = [EMAIL_ADDRESS]
+TEST_PASSWORD = [PASSWORD]
+
 // Import local config if exists (secrets)
 // This must be at the bottom to override default values
 #include? "Config.local.xcconfig"
+
