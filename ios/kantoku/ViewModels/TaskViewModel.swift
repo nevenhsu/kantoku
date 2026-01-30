@@ -106,13 +106,20 @@ class TaskViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            guard let userId = supabaseService.currentUser?.id else {
+            guard let userId = try await supabaseService.currentUserId else {
                 throw TaskError.userNotAuthenticated
             }
             
-            // TODO: Call Supabase to fetch all tasks
-            // For now, using mock data
-            tasks = generateMockTasks()
+            // Only fetch tasks for this user
+            let tasks: [TaskModel] = try await supabaseService.client
+                .from("tasks")
+                .select()
+                .eq("user_id", value: userId)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+            
+            self.tasks = tasks
             
             isLoading = false
         } catch {
@@ -124,30 +131,87 @@ class TaskViewModel: ObservableObject {
     
     /// 載入今日任務
     func loadTodayTasks() async throws {
-        guard let userId = supabaseService.currentUser?.id else {
+        guard let userId = try await supabaseService.currentUserId else {
             throw TaskError.userNotAuthenticated
         }
         
-        // TODO: Call Supabase to fetch today's tasks
-        // For now, using mock data
-        todayTasks = generateMockTasks().filter { task in
-            Calendar.current.isDateInToday(task.createdAt)
-        }
+        // Get today's date string (ISO format YYYY-MM-DD)
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let todayStr = dateFormatter.string(from: Date())
+        
+        // Fetch tasks due today or pending overdue tasks
+        // Note: For simplicity we fetch tasks due today. 
+        // In a real app we might want specific logic for "today's view"
+        print("🔍 Loading today's tasks for user: \(userId)")
+        let tasks: [TaskModel] = try await supabaseService.client
+            .from("tasks")
+            .select()
+            .eq("user_id", value: userId)
+            .lte("due_date", value: todayStr) // Due today or earlier
+            .neq("status", value: "passed")   // Not completed
+            .order("due_date", ascending: true)
+            .execute()
+            .value
+        
+        print("✅ Loaded \(tasks.count) today's tasks")
+        self.todayTasks = tasks
     }
     
     /// 載入統計資料
     func loadStatistics() async throws {
-        guard let userId = supabaseService.currentUser?.id else {
+        guard let userId = try await supabaseService.currentUserId else {
             throw TaskError.userNotAuthenticated
         }
         
-        // TODO: Call Supabase to fetch statistics
-        // For now, using mock data
-        completedTasksCount = 3
-        totalTasksCount = 5
-        todayMinutes = 18
-        dailyGoalMinutes = 30
-        currentStreak = 7
+        // 1. Get Completed Tasks Count
+        let completedCount = try await supabaseService.client
+            .from("tasks")
+            .select("id", head: true, count: .exact)
+            .eq("user_id", value: userId)
+            .eq("status", value: "passed")
+            .execute()
+            .count ?? 0
+            
+        self.completedTasksCount = completedCount
+        
+        // 2. Get Total Tasks Count
+        let totalCount = try await supabaseService.client
+            .from("tasks")
+            .select("id", head: true, count: .exact)
+            .eq("user_id", value: userId)
+            .execute()
+            .count ?? 0
+            
+        self.totalTasksCount = totalCount
+        
+        // 3. Fetch Profile for Streak & Goal info
+        struct ProfileStats: Decodable {
+            let dailyGoalMinutes: Int?
+            let streakDays: Int?
+            
+            enum CodingKeys: String, CodingKey {
+                case dailyGoalMinutes = "daily_goal_minutes"
+                case streakDays = "streak_days"
+            }
+        }
+        
+        if let profile: ProfileStats = try? await supabaseService.client
+            .from("profiles")
+            .select("daily_goal_minutes, streak_days")
+            .eq("id", value: userId)
+            .single()
+            .execute()
+            .value {
+            
+            self.dailyGoalMinutes = profile.dailyGoalMinutes ?? 30
+            self.currentStreak = profile.streakDays ?? 0
+        }
+        
+        // Note: "todayMinutes" calculation would typically require summing up 
+        // duration of completed tasks or fetching a separate 'daily_progress' table.
+        // Keeping mock value for now as we don't have task duration easily available yet.
+        self.todayMinutes = 0 
     }
     
     /// 生成每日任務（調用 n8n webhook）
@@ -156,20 +220,24 @@ class TaskViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            guard let userId = supabaseService.currentUser?.id else {
+            guard let userId = try await supabaseService.currentUserId else {
                 throw TaskError.userNotAuthenticated
             }
             
             // Call n8n webhook to generate tasks
+            // The webhook generates tasks and inserts them into Supabase
             let generatedTasks = try await apiService.generateTasks(
                 userId: userId,
                 dailyGoalMinutes: dailyGoalMinutes
             )
             
-            // Update local state
-            tasks.append(contentsOf: generatedTasks)
-            todayTasks = generatedTasks
-            totalTasksCount += generatedTasks.count
+            print("✅ Generated \(generatedTasks.count) tasks, now reloading from database...")
+            
+            // Reload today's tasks from database to get the complete data
+            try await loadTodayTasks()
+            
+            // Also reload statistics
+            try await loadStatistics()
             
             isLoading = false
         } catch {
@@ -182,19 +250,32 @@ class TaskViewModel: ObservableObject {
     /// 更新任務狀態
     func updateTaskStatus(_ task: TaskModel, status: TaskStatus) async {
         do {
-            // TODO: Update in Supabase
+            // Update in Supabase
+            struct StatusUpdate: Encodable {
+                let status: TaskStatus
+                let updated_at: Date = Date()
+            }
+            
+            try await supabaseService.client
+                .from("tasks")
+                .update(StatusUpdate(status: status))
+                .eq("id", value: task.id)
+                .execute()
+            
+            // Update local state
             if let index = tasks.firstIndex(where: { $0.id == task.id }) {
                 tasks[index].status = status
+                tasks[index].updatedAt = Date()
                 
                 // Update today's tasks if applicable
                 if let todayIndex = todayTasks.firstIndex(where: { $0.id == task.id }) {
                     todayTasks[todayIndex].status = status
+                    todayTasks[todayIndex].updatedAt = Date()
                 }
                 
-                // Update statistics
+                // Reload stats if task is completed
                 if status == .passed {
-                    completedTasksCount += 1
-                    // Note: estimatedMinutes needs to be calculated from task type
+                    try? await loadStatistics()
                 }
             }
         } catch {

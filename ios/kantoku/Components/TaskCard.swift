@@ -98,20 +98,40 @@ struct CardButtonStyle: ButtonStyle {
 
 // MARK: - Empty State Card
 struct EmptyTaskCard: View {
+    var hasAnyTasks: Bool = true // If false, user has no tasks at all (new user)
+    var onGenerateTasks: (() -> Void)? = nil // Optional callback for generating tasks
+    
     var body: some View {
         VStack(spacing: Constants.Spacing.md) {
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: hasAnyTasks ? "checkmark.circle.fill" : "tray")
                 .font(.system(size: 60))
-                .foregroundColor(Constants.Colors.green)
+                .foregroundColor(hasAnyTasks ? Constants.Colors.green : Constants.Colors.secondaryText)
             
-            Text("所有任務已完成！")
+            Text(hasAnyTasks ? "所有任務已完成！" : "還沒有任務")
                 .font(Constants.Typography.h3)
                 .foregroundColor(Constants.Colors.primaryText)
             
-            Text("今天表現很棒！明天繼續加油！")
+            Text(hasAnyTasks ? "今天表現很棒！明天繼續加油！" : "生成今日學習任務開始學習")
                 .font(Constants.Typography.body)
                 .foregroundColor(Constants.Colors.secondaryText)
                 .multilineTextAlignment(.center)
+            
+            // Generate Tasks Button (only for new users)
+            if !hasAnyTasks, let action = onGenerateTasks {
+                Button(action: action) {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                        Text("生成每日任務")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Constants.Colors.primary)
+                    .foregroundColor(.white)
+                    .cornerRadius(Constants.CornerRadius.button)
+                }
+                .padding(.top, Constants.Spacing.sm)
+            }
         }
         .padding(Constants.Spacing.xl)
         .frame(maxWidth: .infinity)

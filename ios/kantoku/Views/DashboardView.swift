@@ -143,7 +143,14 @@ struct DashboardView: View {
                     .frame(maxWidth: .infinity)
                     .padding(Constants.Spacing.xl)
             } else if viewModel.todayTasks.isEmpty {
-                EmptyTaskCard()
+                EmptyTaskCard(
+                    hasAnyTasks: viewModel.totalTasksCount > 0,
+                    onGenerateTasks: {
+                        Task {
+                            await viewModel.generateDailyTasks()
+                        }
+                    }
+                )
             } else {
                 ForEach(viewModel.todayTasks) { task in
                     TaskCard(task: task) {

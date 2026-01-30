@@ -8,7 +8,7 @@
 import Foundation
 
 /// 任務模型
-struct TaskModel: Codable, Identifiable {
+struct TaskModel: Identifiable {
     let id: UUID
     let userId: UUID
     let taskType: TaskType
@@ -19,6 +19,32 @@ struct TaskModel: Codable, Identifiable {
     let createdAt: Date
     var updatedAt: Date
     
+    // Default initializer
+    init(
+        id: UUID,
+        userId: UUID,
+        taskType: TaskType,
+        content: TaskContent,
+        status: TaskStatus,
+        dueDate: Date,
+        skipped: Bool,
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.userId = userId
+        self.taskType = taskType
+        self.content = content
+        self.status = status
+        self.dueDate = dueDate
+        self.skipped = skipped
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+// MARK: - Codable
+extension TaskModel: Codable {
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
@@ -29,6 +55,75 @@ struct TaskModel: Codable, Identifiable {
         case skipped
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+    
+    // Custom decoder to handle both string and object content formats
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(UUID.self, forKey: .id)
+        userId = try container.decode(UUID.self, forKey: .userId)
+        taskType = try container.decode(TaskType.self, forKey: .taskType)
+        status = try container.decode(TaskStatus.self, forKey: .status)
+        skipped = try container.decode(Bool.self, forKey: .skipped)
+        
+        // Handle date decoding
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        if let createdAtString = try? container.decode(String.self, forKey: .createdAt) {
+            createdAt = dateFormatter.date(from: createdAtString) ?? Date()
+        } else {
+            createdAt = try container.decode(Date.self, forKey: .createdAt)
+        }
+        
+        if let updatedAtString = try? container.decode(String.self, forKey: .updatedAt) {
+            updatedAt = dateFormatter.date(from: updatedAtString) ?? Date()
+        } else {
+            updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        }
+        
+        if let dueDateString = try? container.decode(String.self, forKey: .dueDate) {
+            let dueDateFormatter = DateFormatter()
+            dueDateFormatter.dateFormat = "yyyy-MM-dd"
+            dueDate = dueDateFormatter.date(from: dueDateString) ?? Date()
+        } else {
+            dueDate = try container.decode(Date.self, forKey: .dueDate)
+        }
+        
+        // Handle content: can be either a string (from Supabase JSONB) or object (from n8n)
+        if let contentString = try? container.decode(String.self, forKey: .content) {
+            // Content is stored as string in Supabase, need to parse it
+            print("📦 Decoding content from string: \(contentString)")
+            guard let contentData = contentString.data(using: .utf8) else {
+                throw DecodingError.dataCorrupted(
+                    DecodingError.Context(
+                        codingPath: decoder.codingPath,
+                        debugDescription: "Content string cannot be converted to data"
+                    )
+                )
+            }
+            let contentDecoder = JSONDecoder()
+            content = try contentDecoder.decode(TaskContent.self, from: contentData)
+        } else {
+            // Content is already an object (from n8n response)
+            print("📦 Decoding content from object")
+            content = try container.decode(TaskContent.self, forKey: .content)
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        try container.encode(id, forKey: .id)
+        try container.encode(userId, forKey: .userId)
+        try container.encode(taskType, forKey: .taskType)
+        try container.encode(content, forKey: .content)
+        try container.encode(status, forKey: .status)
+        try container.encode(dueDate, forKey: .dueDate)
+        try container.encode(skipped, forKey: .skipped)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
     }
 }
 
@@ -96,18 +191,47 @@ enum TaskContent: Codable {
         let json = try container.decode([String: AnyCodable].self)
         
         // 根據內容判斷類型
-        if let kanaList = json["kana_list"] {
+        if json["kana_list"] != nil {
+            // New format: array of kana items
             let content = try JSONDecoder().decode(KanaLearnContent.self, from: JSONEncoder().encode(json))
             self = .kanaLearn(content)
-        } else if let reviewKana = json["review_kana"] {
+        } else if json["review_kana"] != nil {
+            // New format: array of review kana items
             let content = try JSONDecoder().decode(KanaReviewContent.self, from: JSONEncoder().encode(json))
             self = .kanaReview(content)
-        } else if let words = json["words"] {
+        } else if json["kana"] != nil && json["type"] != nil {
+            // Old format: single kana item (from n8n legacy format)
+            // Convert to new format
+            let kanaItem = KanaItem(
+                kana: (json["kana"]?.value as? String) ?? "",
+                romaji: (json["romaji"]?.value as? String) ?? ""
+            )
+            let kanaTypeStr = (json["type"]?.value as? String) ?? "hiragana"
+            let kanaType = KanaType(rawValue: kanaTypeStr) ?? .hiragana
+            
+            // Check if it's a review or learn task based on description/prompt
+            if let description = json["description"]?.value as? String, description.contains("複習") {
+                let content = KanaReviewContent(reviewKana: [kanaItem], kanaType: kanaType)
+                self = .kanaReview(content)
+            } else {
+                let content = KanaLearnContent(kanaList: [kanaItem], kanaType: kanaType)
+                self = .kanaLearn(content)
+            }
+        } else if json["words"] != nil {
             let content = try JSONDecoder().decode(VocabularyContent.self, from: JSONEncoder().encode(json))
             self = .vocabulary(content)
-        } else {
+        } else if json["resource_type"] != nil {
             let content = try JSONDecoder().decode(ExternalResourceContent.self, from: JSONEncoder().encode(json))
             self = .externalResource(content)
+        } else {
+            // Unknown content type, print for debugging
+            print("⚠️ Unknown task content type. Keys: \(json.keys)")
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Unknown task content type. Available keys: \(json.keys)"
+                )
+            )
         }
     }
     

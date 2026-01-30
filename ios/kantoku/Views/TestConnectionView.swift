@@ -17,28 +17,26 @@ struct TestConnectionView: View {
     private let testService = ConnectionTestService.shared
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: Constants.Spacing.lg) {
-                    // 標題區
-                    headerSection
-                    
-                    // 測試按鈕
-                    runTestButton
-                    
-                    // 測試結果
-                    if !testResults.isEmpty {
-                        resultsSection
-                    }
-                    
-                    // 使用指南
-                    guideSection
+        ScrollView {
+            VStack(spacing: Constants.Spacing.lg) {
+                // 標題區
+                headerSection
+                
+                // 測試按鈕
+                runTestButton
+                
+                // 測試結果
+                if !testResults.isEmpty {
+                    resultsSection
                 }
-                .padding(Constants.Spacing.lg)
+                
+                // 使用指南
+                guideSection
             }
-            .navigationTitle("連接測試")
-            .navigationBarTitleDisplayMode(.large)
+            .padding(Constants.Spacing.lg)
         }
+        .navigationTitle("連接測試")
+        .navigationBarTitleDisplayMode(.large)
     }
     
     // MARK: - 標題區

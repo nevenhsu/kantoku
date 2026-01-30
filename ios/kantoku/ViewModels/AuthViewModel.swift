@@ -133,6 +133,8 @@ class AuthViewModel: ObservableObject {
             // Success - will need to create user profile in Supabase
             // For now, just let the auth state change handle navigation
         } catch {
+            print("註冊錯誤原始訊息: \(error)")
+            print("錯誤描述: \(error.localizedDescription)")
             errorMessage = handleAuthError(error)
             showError = true
         }
@@ -200,9 +202,18 @@ class AuthViewModel: ObservableObject {
         // Map Supabase errors to user-friendly messages
         let errorDescription = error.localizedDescription.lowercased()
         
-        if errorDescription.contains("invalid") && errorDescription.contains("credentials") {
+        // Check for rate limit error
+        if errorDescription.contains("rate limit") || errorDescription.contains("email_send_rate_limit") {
+            return "郵件發送頻率過高，請稍後再試"
+        } else if errorDescription.contains("email") && errorDescription.contains("invalid") {
+            return "電子郵件格式不正確，請使用有效的電子郵件地址"
+        } else if errorDescription.contains("invalid") && errorDescription.contains("credentials") {
             return "電子郵件或密碼不正確"
+        } else if errorDescription.contains("此電子郵件已被註冊") {
+            return errorDescription.capitalized
         } else if errorDescription.contains("user") && errorDescription.contains("already") {
+            return "此電子郵件已被註冊"
+        } else if errorDescription.contains("already") && errorDescription.contains("registered") {
             return "此電子郵件已被註冊"
         } else if errorDescription.contains("network") {
             return "網路連接失敗，請檢查網路設定"

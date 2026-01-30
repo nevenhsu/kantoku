@@ -39,10 +39,47 @@ class APIService {
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let response = try JSONDecoder().decode(TaskGenerationResponse.self, from: data)
+        let (data, response) = try await URLSession.shared.data(for: request)
         
-        return response.tasks
+        // Check HTTP status
+        if let httpResponse = response as? HTTPURLResponse {
+            guard (200...299).contains(httpResponse.statusCode) else {
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                throw NSError(domain: "APIService", code: httpResponse.statusCode,
+                            userInfo: [NSLocalizedDescriptionKey: "HTTP \(httpResponse.statusCode): \(errorMessage)"])
+            }
+        }
+        
+        // Log raw response for debugging
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("📦 Raw response from n8n: \(responseString)")
+        }
+        
+        let decoder = JSONDecoder()
+        
+        // n8n returns data wrapped in an array when using "allIncomingItems"
+        // Try to decode as array of response objects first
+        do {
+            let responseArray = try decoder.decode([TaskGenerationResponse].self, from: data)
+            guard let firstResponse = responseArray.first else {
+                throw NSError(domain: "APIService", code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: "Empty response array from n8n"])
+            }
+            
+            print("✅ Decoded response: \(firstResponse.message)")
+            print("✅ Generated \(firstResponse.tasksGenerated) tasks")
+            
+            // Convert TaskResponseModel to TaskModel
+            let tasks = try firstResponse.tasks.map { try $0.toTaskModel() }
+            return tasks
+        } catch let decodingError {
+            // If decoding fails, provide detailed error
+            let responseString = String(data: data, encoding: .utf8) ?? "Unable to decode"
+            print("❌ Decoding error: \(decodingError)")
+            print("📦 Response: \(responseString)")
+            throw NSError(domain: "APIService", code: -1,
+                        userInfo: [NSLocalizedDescriptionKey: "Failed to decode tasks: \(decodingError.localizedDescription)"])
+        }
     }
     
     /// 通用的 POST 請求（用於測試）
@@ -160,7 +197,70 @@ class APIService {
 // MARK: - Response Models
 
 struct TaskGenerationResponse: Codable {
-    let tasks: [TaskModel]
+    let success: Bool
+    let tasksGenerated: Int
+    let tasks: [TaskResponseModel]
+    let estimatedMinutes: Int
+    let message: String
+    
+    enum CodingKeys: String, CodingKey {
+        case success
+        case tasksGenerated = "tasks_generated"
+        case tasks
+        case estimatedMinutes = "estimated_minutes"
+        case message
+    }
+}
+
+// Task model from n8n response (content is already parsed as object)
+struct TaskResponseModel: Codable {
+    let id: UUID
+    let userId: UUID
+    let taskType: TaskType
+    let content: TaskContent
+    let status: TaskStatus
+    let dueDate: String  // Date as string from n8n
+    let skipped: Bool
+    let createdAt: String
+    let updatedAt: String
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case taskType = "task_type"
+        case content
+        case status
+        case dueDate = "due_date"
+        case skipped
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+    
+    // Convert to TaskModel
+    func toTaskModel() throws -> TaskModel {
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        let created = dateFormatter.date(from: createdAt) ?? Date()
+        let updated = dateFormatter.date(from: updatedAt) ?? Date()
+        
+        // Parse due_date (YYYY-MM-DD format)
+        let dueDateFormatter = DateFormatter()
+        dueDateFormatter.dateFormat = "yyyy-MM-dd"
+        let due = dueDateFormatter.date(from: dueDate) ?? Date()
+        
+        return TaskModel(
+            id: id,
+            userId: userId,
+            taskType: taskType,
+            content: content,
+            status: status,
+            dueDate: due,
+            skipped: skipped,
+            createdAt: created,
+            updatedAt: updated
+        )
+    }
 }
 
 struct SubmissionResult: Codable {

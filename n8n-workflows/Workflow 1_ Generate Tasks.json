@@ -26,8 +26,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2128,
-        -96
+        2160,
+        -208
       ],
       "id": "a2b48d5b-08ce-4e52-bb67-b653bb7e8d4b",
       "name": "Respond to Webhook"
@@ -198,13 +198,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst userId = $('Webhook').first().json.body.user_id;\nconst today = new Date().toISOString().split('T')[0];\n\nreturn items.map(item => ({\n  json: {\n    user_id: userId,\n    task_type: item.json.task_type,\n    content: JSON.stringify({\n      kana: item.json.kana,\n      romaji: item.json.romaji,\n      type: item.json.kana_type,\n      description: item.json.task_type === 'kana_learn' \n        ? `學習平假名「${item.json.kana}」` \n        : `複習平假名「${item.json.kana}」`,\n      prompt: `請輸入「${item.json.kana}」的羅馬拼音`\n    }),\n    status: 'pending',\n    due_date: today\n  }\n}));"
+        "jsCode": "const items = $input.all();\nconst userId = $('Webhook').first().json.body.user_id;\nconst today = new Date().toISOString().split('T')[0];\n\n// Group items by task type to create proper content structure\nconst tasksByType = {};\nitems.forEach(item => {\n  const taskType = item.json.task_type;\n  if (!tasksByType[taskType]) {\n    tasksByType[taskType] = [];\n  }\n  tasksByType[taskType].push(item);\n});\n\n// Build tasks with correct content format\nconst tasks = [];\nfor (const [taskType, taskItems] of Object.entries(tasksByType)) {\n  let content;\n  \n  if (taskType === 'kana_learn') {\n    content = {\n      kana_list: taskItems.map(item => ({\n        kana: item.json.kana,\n        romaji: item.json.romaji\n      })),\n      kana_type: taskItems[0].json.kana_type\n    };\n  } else if (taskType === 'kana_review') {\n    content = {\n      review_kana: taskItems.map(item => ({\n        kana: item.json.kana,\n        romaji: item.json.romaji\n      })),\n      kana_type: taskItems[0].json.kana_type\n    };\n  }\n  \n  tasks.push({\n    json: {\n      user_id: userId,\n      task_type: taskType,\n      content: content,\n      status: 'pending',\n      due_date: today\n    }\n  });\n}\n\nreturn tasks;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1472,
-        112
+        1504,
+        0
       ],
       "id": "ed652f32-c658-43f9-92c4-e052ed3bfef3",
       "name": "Code - Build Tasks"
@@ -216,8 +216,8 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        1680,
-        112
+        1712,
+        0
       ],
       "id": "02c29d9e-ec36-4449-88f8-791bda5ceba5",
       "name": "Loop - Insert Tasks"
@@ -253,8 +253,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        1872,
-        208
+        1904,
+        96
       ],
       "id": "afddd742-b015-47c5-bfc8-91748e13de2b",
       "name": "Insert - Task",
@@ -267,13 +267,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const tasks = $input.all().map(item => ({\n  id: item.json.id,\n  task_type: item.json.task_type,\n  content: JSON.parse(item.json.content),\n  status: item.json.status,\n  due_date: item.json.due_date\n}));\n\nreturn [{\n  json: {\n    success: true,\n    tasks_generated: tasks.length,\n    tasks: tasks,\n    estimated_minutes: tasks.length * 3,\n    message: '今日任務已生成'\n  }\n}];\n"
+        "jsCode": "const tasks = $input.all().map(item => ({\n  id: item.json.id,\n  user_id: item.json.user_id,\n  task_type: item.json.task_type,\n  content: item.json.content,\n  status: item.json.status,\n  due_date: item.json.due_date,\n  skipped: item.json.skipped || false,\n  created_at: item.json.created_at,\n  updated_at: item.json.updated_at\n}));\n\nreturn {\n    success: true,\n    tasks_generated: tasks.length,\n    tasks: tasks,\n    estimated_minutes: tasks.length * 3,\n    message: '今日任務已生成'\n};\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1888,
-        16
+        1920,
+        -96
       ],
       "id": "957c760a-b47e-418f-973f-6246dfe659bd",
       "name": "Code - Format Response"
@@ -420,7 +420,7 @@
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "Code - Build Tasks",
             "type": "main",
             "index": 0
           }
@@ -433,7 +433,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "692e7d8b-a1d7-46db-a3a0-35ef7b0d3774",
+  "versionId": "62b3a4a5-0607-49a7-a468-389a311482a0",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "bd9282013e8dda099718f0b96696ffc2c8915d0a6f6124fc502a7eff313b0320"
