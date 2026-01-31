@@ -104,34 +104,123 @@
 
 **測試指令**:
 ```bash
-curl -X POST http://localhost:5678/webhook-test/generate-tasks \
+# 測試有複習任務的用戶
+curl -X POST http://localhost:5678/webhook/generate-tasks \
   -H "Content-Type: application/json" \
-  -d '{"user_id": "ebc3cd0d-dc42-42c1-920a-87328627fe35", "daily_goal_minutes": 30}'
+  -d '{"user_id": "ebc3cd0d-dc42-42c1-920a-87328627fe35"}'
+
+# 測試無複習任務的新用戶
+curl -X POST http://localhost:5678/webhook/generate-tasks \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "5d3f4e09-647f-4194-8411-19283e37115a"}'
+
+# 格式化輸出（使用 jq）
+curl -X POST http://localhost:5678/webhook/generate-tasks \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "ebc3cd0d-dc42-42c1-920a-87328627fe35"}' | jq '.'
 ```
 
-**成功回應**:
+**成功回應（有複習任務）**:
 ```json
 {
   "success": true,
-  "tasks_generated": 5,
+  "tasks_generated": 1,
   "tasks": [
-    {"id": "...", "task_type": "kana_learn", "content": {"kana": "あ", "romaji": "a", ...}},
-    {"id": "...", "task_type": "kana_learn", "content": {"kana": "い", "romaji": "i", ...}},
-    {"id": "...", "task_type": "kana_learn", "content": {"kana": "う", "romaji": "u", ...}},
-    {"id": "...", "task_type": "kana_learn", "content": {"kana": "え", "romaji": "e", ...}},
-    {"id": "...", "task_type": "kana_learn", "content": {"kana": "お", "romaji": "o", ...}}
+    {
+      "id": "b23438c9-cdb7-4a5c-b743-347259601df6",
+      "user_id": "ebc3cd0d-dc42-42c1-920a-87328627fe35",
+      "task_type": "kana_review",
+      "content": "{\"review_kana\":[{\"kana\":\"き\",\"romaji\":\"ki\"},{\"kana\":\"き\",\"romaji\":\"ki\"},...],\"kana_type\":\"hiragana\"}",
+      "status": "pending",
+      "due_date": "2026-01-31",
+      "skipped": false,
+      "created_at": "2026-01-31T04:03:38.487819+00:00",
+      "updated_at": "2026-01-31T04:03:38.487819+00:00"
+    }
   ],
-  "estimated_minutes": 15,
+  "estimated_minutes": 3,
   "message": "今日任務已生成"
 }
 ```
 
+**成功回應（無複習任務 - 學習新假名）**:
+```json
+{
+  "success": true,
+  "tasks_generated": 1,
+  "tasks": [
+    {
+      "id": "952f6168-ea27-4f85-b025-3ca21661513d",
+      "user_id": "5d3f4e09-647f-4194-8411-19283e37115a",
+      "task_type": "kana_learn",
+      "content": "{\"kana_list\":[{\"kana\":\"あ\",\"romaji\":\"a\"},{\"kana\":\"い\",\"romaji\":\"i\"},{\"kana\":\"う\",\"romaji\":\"u\"},{\"kana\":\"え\",\"romaji\":\"e\"},{\"kana\":\"お\",\"romaji\":\"o\"}],\"kana_type\":\"hiragana\"}",
+      "status": "pending",
+      "due_date": "2026-01-31",
+      "skipped": false,
+      "created_at": "2026-01-31T04:04:23.989109+00:00",
+      "updated_at": "2026-01-31T04:04:23.989109+00:00"
+    }
+  ],
+  "estimated_minutes": 3,
+  "message": "今日任務已生成"
+}
+```
+
+### API 回應結構
+
+| 欄位 | 類型 | 說明 |
+|------|------|------|
+| `success` | boolean | 任務生成是否成功 |
+| `tasks_generated` | number | 生成的任務數量 |
+| `tasks` | array | 任務列表 |
+| `tasks[].id` | uuid | 任務 ID |
+| `tasks[].user_id` | uuid | 使用者 ID |
+| `tasks[].task_type` | string | `kana_review` 或 `kana_learn` |
+| `tasks[].content` | string (JSON) | 任務內容（需解析 JSON） |
+| `tasks[].status` | string | 任務狀態：`pending` |
+| `tasks[].due_date` | date | 截止日期 |
+| `tasks[].skipped` | boolean | 是否已跳過 |
+| `tasks[].created_at` | timestamp | 建立時間 |
+| `tasks[].updated_at` | timestamp | 更新時間 |
+| `estimated_minutes` | number | 預估完成時間（分鐘） |
+| `message` | string | 回應訊息 |
+
+### Content 結構說明
+
+`content` 欄位為 JSON 字串，需解析後使用：
+
+**kana_review 類型**:
+```json
+{
+  "review_kana": [
+    {"kana": "き", "romaji": "ki"},
+    {"kana": "き", "romaji": "ki"}
+  ],
+  "kana_type": "hiragana"
+}
+```
+
+**kana_learn 類型**:
+```json
+{
+  "kana_list": [
+    {"kana": "あ", "romaji": "a"},
+    {"kana": "い", "romaji": "i"},
+    {"kana": "う", "romaji": "u"},
+    {"kana": "え", "romaji": "e"},
+    {"kana": "お", "romaji": "o"}
+  ],
+  "kana_type": "hiragana"
+}
+```
+
 **驗證項目**:
-- ✅ 新使用者走 false 分支（新學習路徑）
+- ✅ 有複習任務時生成 `kana_review` 類型任務
+- ✅ 無複習任務時生成 `kana_learn` 類型任務
 - ✅ 成功查詢當前階段（Stage 1: あ行）
-- ✅ 成功生成 5 個假名學習任務
+- ✅ Content 格式統一為 JSON 字串
 - ✅ 成功插入 tasks 表
-- ✅ 回傳格式正確
+- ✅ 回傳格式正確，包含完整時間戳記
 
 ---
 

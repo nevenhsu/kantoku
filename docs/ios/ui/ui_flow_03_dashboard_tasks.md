@@ -43,29 +43,44 @@
 
 ---
 
-### 1.2 今日任務區塊 (Today's Tasks Section)
+### 1.2 今日任務區塊 (Today's Tasks Section) ✅ 已更新
 
 **標題列：**
 - "今日任務" - Title2, Bold
-- 跳過次數標籤："2/2" - 橘色背景，圓角 8pt
+- 查看全部連結（右側）
 
-**任務卡片列表：**
-- 最多顯示 3 個任務
+**任務分組顯示：**
+
+**複習任務區塊（優先顯示）：**
+- 區塊標題：
+  * 圖標："arrow.clockwise.circle.fill" - 橘色
+  * 文字："複習 (X)" - Title3，顯示任務數量
+- 任務卡片列表（來自 API 的 `kana_review` 類型）
+- 顯示內容：複習 X 個假名
+
+**練習任務區塊：**
+- 區塊標題：
+  * 圖標："book.circle.fill" - 藍色
+  * 文字："練習 (X)" - Title3，顯示任務數量
+- 任務卡片列表（來自 API 的 `kana_learn` 類型）
+- 顯示內容：學習 X 個假名
+
+**任務卡片結構：**
 - 每個卡片包含：
-  * 左側彩色邊條（4pt 寬，根據狀態）
-    - Pending: 藍色
-    - Passed: 綠色
-    - Failed: 紅色
-  * 任務圖標（44x44 pt，圓角 8pt，狀態色背景）
-  * 任務內容：
-    - 標題（Headline）
-    - 簡述（Subheadline，次要色，最多 2 行）
+  * 任務圖標（44x44 pt，圓形，Primary 色背景）
+  * 任務標題（Headline）：
+    - kana_review: "假名複習"
+    - kana_learn: "假名學習"
+  * 任務簡述（Subheadline，次要色）：
+    - kana_review: "X 個假名"
+    - kana_learn: "X 個假名"
+  * 假名預覽（Body）：顯示假名字符（如：あ い う え お）
   * 狀態標籤（右側）
   * 右箭頭圖標（次要色）
 
 **任務類型圖標：**
-- kana_learn: "text.book.closed"
-- kana_review: "arrow.clockwise"
+- kana_learn: "text.book.closed" - 藍色
+- kana_review: "arrow.clockwise" - 橘色
 - vocabulary: "book.fill"
 - external_resource: "play.rectangle.fill"
 

@@ -11,12 +11,245 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        0,
-        0
+        -592,
+        144
       ],
-      "id": "a0842c5b-6812-4dd1-9d22-9b1fd2dacd52",
+      "id": "7fade43b-3a78-4bc8-b9f1-872481bb2635",
       "name": "Webhook",
       "webhookId": "6aa7af0d-396a-4fa3-9fab-f353d95d5701"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM tasks\nWHERE user_id = '{{ $json.body.user_id }}'\n  AND DATE(created_at) = CURRENT_DATE\nORDER BY created_at DESC;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -352,
+        144
+      ],
+      "id": "7f416075-aa33-4205-b1a5-85e18b580b90",
+      "name": "Check Existing Tasks",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const tasks = $input.all().map(item => ({\n  id: item.json.id,\n  user_id: item.json.user_id,\n  task_type: item.json.task_type,\n  content: item.json.content,\n  status: item.json.status,\n  due_date: item.json.due_date,\n  skipped: item.json.skipped || false,\n  created_at: item.json.created_at,\n  updated_at: item.json.updated_at\n}));\n\nreturn {\n  success: true,\n  tasks_generated: tasks.length,\n  tasks: tasks,\n  estimated_minutes: tasks.length * 3,\n  message: '今日任務已存在'\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2064,
+        160
+      ],
+      "id": "3c3c1ea2-2ea6-4739-af74-f593fe3711d7",
+      "name": "Format Existing Tasks"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "user_progress",
+        "filterType": "string",
+        "filterString": "=user_id=eq.{{ $('Webhook').item.json.body.user_id }}"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        144,
+        -272
+      ],
+      "id": "ab9871b0-0510-4e0a-8454-49b6ffc8da36",
+      "name": "Query - User Progress",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "RculhUeb6L26Iaph",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ls.id, ls.name, ls.kana_data\nFROM learning_stages ls\nJOIN user_progress up ON ls.id = up.current_stage_id + 1\nWHERE up.user_id = '{{ $('Webhook').item.json.body.user_id }}'\n  AND ls.id <= 10\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        384,
+        -448
+      ],
+      "id": "32386adc-bc30-4c50-a5a5-4feba2815e80",
+      "name": "Query - Next Stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT kp.kana, kp.romaji, kp.mastery_score, kp.last_reviewed\nFROM kana_progress kp\nWHERE kp.user_id = '{{ $('Webhook').item.json.body.user_id }}'\n  AND kp.next_review <= NOW()\n  AND kp.status IN ('learning', 'reviewing')\nORDER BY kp.last_reviewed ASC NULLS FIRST\nLIMIT 10;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        368,
+        -32
+      ],
+      "id": "26659e44-1fc0-4b07-91c9-daffc7f23770",
+      "name": "Query - Review Items",
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const stageData = $input.first()?.json;\n\n// 如果沒有下一階段數據 (已完成所有階段)\nif (!stageData || !stageData.kana_data) {\n  return {\n    json: {\n      newKana: [],\n      hasNewKana: false,\n      message: '已完成所有學習階段'\n    }\n  };\n}\n\n// 下一階段的所有假名\nconst allKana = stageData.kana_data || [];\n\nreturn {\n  json: {\n    newKana: allKana,\n    hasNewKana: allKana.length > 0,\n    stageName: stageData.name\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -448
+      ],
+      "id": "bb96b432-7e64-434d-b43f-465fe3ea2e76",
+      "name": "Code - Select New Kana"
+    },
+    {
+      "parameters": {
+        "jsCode": "const reviewItems = $input.all();\n\n// 如果沒有複習項目,返回空數組\nif (!reviewItems || reviewItems.length === 0) {\n  return { json: { reviewKana: [], hasReview: false } };\n}\n\n// 提取假名信息\nconst reviewKana = reviewItems.map(item => ({\n  kana: item.json.kana,\n  romaji: item.json.romaji\n}));\n\nreturn {\n  json: {\n    reviewKana: reviewKana,\n    hasReview: true\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -32
+      ],
+      "id": "09615011-c472-48e0-8a51-a4fb155543d0",
+      "name": "Code - Prepare Review"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 獲取數據\nconst reviewData = $('Code - Prepare Review').first().json;\nconst learnData = $('Code - Select New Kana').first().json;\nconst userId = $('Webhook').first().json.body.user_id;\nconst dueDate = new Date().toISOString().split('T')[0];\nconst now = new Date().toISOString();\n\nconst tasks = [];\n\n// 1. 生成複習任務 (如果有待複習項目)\nif (reviewData.hasReview && reviewData.reviewKana.length > 0) {\n  tasks.push({\n    user_id: userId,\n    task_type: 'kana_review',\n    content: JSON.stringify({\n      review_kana: reviewData.reviewKana,\n      kana_type: 'hiragana'\n    }),\n    status: 'pending',\n    due_date: dueDate,\n    skipped: false,\n    created_at: now,\n    updated_at: now\n  });\n  console.log(`✅ 生成複習任務: ${reviewData.reviewKana.length} 個假名`);\n}\n\n// 2. 生成學習任務 (如果有新假名)\nif (learnData.hasNewKana && learnData.newKana.length > 0) {\n  tasks.push({\n    user_id: userId,\n    task_type: 'kana_learn',\n    content: JSON.stringify({\n      kana_list: learnData.newKana,\n      kana_type: 'hiragana'\n    }),\n    status: 'pending',\n    due_date: dueDate,\n    skipped: false,\n    created_at: now,\n    updated_at: now\n  });\n  console.log(`✅ 生成學習任務: ${learnData.newKana.length} 個假名`);\n}\n\n// 如果沒有任何任務,返回空數組\nif (tasks.length === 0) {\n  console.log('⚠️ 沒有需要生成的任務');\n}\n\nreturn tasks.map(task => ({ json: task }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        -256
+      ],
+      "id": "18a9e9a3-4bff-4a9a-926a-a42995d306a4",
+      "name": "Code - Build Tasks"
+    },
+    {
+      "parameters": {
+        "operation": "insert"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        -256
+      ],
+      "id": "c07d5cba-50d9-4a88-a7df-ead5ae5151bf",
+      "name": "Insert Tasks",
+      "credentials": {
+        "supabaseApi": {
+          "id": "RculhUeb6L26Iaph",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const learnData = $('Code - Select New Kana').first().json;\nconst userId = $('Webhook').first().json.body.user_id;\nconst now = new Date().toISOString();\n\n// 為新學習的假名創建 kana_progress 記錄\nconst progressRecords = [];\n\nif (learnData.hasNewKana && learnData.newKana.length > 0) {\n  for (const kanaObj of learnData.newKana) {\n    progressRecords.push({\n      user_id: userId,\n      kana: kanaObj.kana,\n      romaji: kanaObj.romaji,\n      status: 'learning',\n      mastery_score: 0,\n      last_reviewed: now,\n      next_review: now,\n      review_count: 0,\n      created_at: now,\n      updated_at: now\n    });\n  }\n}\n\nif (progressRecords.length === 0) {\n  return [];\n}\n\nreturn progressRecords.map(record => ({ json: record }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        -448
+      ],
+      "id": "f4c5c1b9-17e5-438c-badc-0b75f1172e1e",
+      "name": "Code - Build Progress Records"
+    },
+    {
+      "parameters": {
+        "operation": "insert"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        -448
+      ],
+      "id": "bd34dbab-2ad3-4ea7-8f00-f105609dffc6",
+      "name": "Insert Kana Progress",
+      "credentials": {
+        "supabaseApi": {
+          "id": "RculhUeb6L26Iaph",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE kana_progress\nSET \n  last_reviewed = NOW(),\n  next_review = NOW() + INTERVAL '3 days',\n  updated_at = NOW()\nWHERE user_id = '{{ $('Webhook').item.json.body.user_id }}'\n  AND kana IN (\n    {{ $('Code - Prepare Review').item.json.reviewKana.map(k => \"'\" + k.kana + \"'\").join(',') }}\n  );",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1104,
+        -48
+      ],
+      "id": "3008ec8a-0705-4d51-ae90-d01c4d848620",
+      "name": "Update Review Timestamps",
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM tasks\nWHERE user_id = '{{ $('Webhook').item.json.body.user_id }}'\n  AND DATE(created_at) = CURRENT_DATE\nORDER BY created_at DESC;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1824,
+        -256
+      ],
+      "id": "2773739a-e5da-4141-b060-ecb63ccd3f02",
+      "name": "Query All Tasks",
+      "credentials": {
+        "postgres": {
+          "id": "hynLF0TmxXH71HPT",
+          "name": "Postgres account"
+        }
+      }
     },
     {
       "parameters": {
@@ -26,115 +259,11 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2160,
-        -208
+        2288,
+        160
       ],
-      "id": "a2b48d5b-08ce-4e52-bb67-b653bb7e8d4b",
+      "id": "a807186d-23f4-4f5d-98bc-50bc97477557",
       "name": "Respond to Webhook"
-    },
-    {
-      "parameters": {
-        "operation": "getAll",
-        "tableId": "user_progress",
-        "filterType": "string",
-        "filterString": "=user_id=eq.{{ $json.body.user_id }}"
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        208,
-        0
-      ],
-      "id": "0eda0e19-bfbe-41ac-8e52-bd3bb018bea8",
-      "name": "Query - User Progress",
-      "credentials": {
-        "supabaseApi": {
-          "id": "RculhUeb6L26Iaph",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "getAll",
-        "tableId": "learning_stages",
-        "filterType": "string",
-        "filterString": "=id=eq.{{ $json.current_stage_id }}"
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        416,
-        0
-      ],
-      "id": "02157e68-5c26-4417-9252-7b3e69d92b56",
-      "name": "Query - Learning Stage",
-      "credentials": {
-        "supabaseApi": {
-          "id": "RculhUeb6L26Iaph",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "getAll",
-        "tableId": "kana_progress",
-        "filterType": "string",
-        "filterString": "=user_id=eq.{{ $('Webhook').item.json.body.user_id }}&status=in.(learning,reviewing,mastered)"
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        624,
-        0
-      ],
-      "id": "e5d3c566-3e95-4d43-93f6-6674b6b51b84",
-      "name": "Query - Learned Kana",
-      "alwaysOutputData": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "RculhUeb6L26Iaph",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "getAll",
-        "tableId": "kana_progress",
-        "limit": 5,
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "user_id",
-              "condition": "eq",
-              "keyValue": "={{ $('Webhook').item.json.body.user_id }}"
-            },
-            {
-              "keyName": "next_review",
-              "condition": "lte",
-              "keyValue": "={{ $now }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        816,
-        0
-      ],
-      "id": "cdcd8451-e6f4-4af9-b888-6e770de16e66",
-      "name": "Query - Review Items",
-      "alwaysOutputData": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "RculhUeb6L26Iaph",
-          "name": "Supabase account"
-        }
-      }
     },
     {
       "parameters": {
@@ -143,16 +272,16 @@
             "caseSensitive": true,
             "leftValue": "",
             "typeValidation": "strict",
-            "version": 3
+            "version": 1
           },
           "conditions": [
             {
-              "id": "ebdc11d9-b596-4c49-871a-904ac174bd9f",
-              "leftValue": "={{ $json.id }}",
-              "rightValue": "",
+              "id": "ca84bb67-0f68-4c5d-a16d-5f550313c3ba",
+              "leftValue": "={{ $('Check Existing Tasks').first().json }}",
+              "rightValue": 0,
               "operator": {
-                "type": "string",
-                "operation": "notEmpty",
+                "type": "object",
+                "operation": "empty",
                 "singleValue": true
               }
             }
@@ -162,121 +291,13 @@
         "options": {}
       },
       "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
-      "position": [
-        1024,
-        0
-      ],
-      "id": "71645608-1367-4c0a-aa46-c063fcd9afa7",
-      "name": "IF - Has Review Items"
-    },
-    {
-      "parameters": {
-        "jsCode": "// 取得當前階段的假名\nconst stage = $('Query - Learning Stage').first().json;\nconst kanaChars = stage.kana_chars || [];\n\n// 假名對應的羅馬拼音（Stage 1: あ行）\nconst romajiMap = {\n  'あ': 'a', 'い': 'i', 'う': 'u', 'え': 'e', 'お': 'o',\n  'か': 'ka', 'き': 'ki', 'く': 'ku', 'け': 'ke', 'こ': 'ko',\n  'さ': 'sa', 'し': 'shi', 'す': 'su', 'せ': 'se', 'そ': 'so',\n  'た': 'ta', 'ち': 'chi', 'つ': 'tsu', 'て': 'te', 'と': 'to',\n  'な': 'na', 'に': 'ni', 'ぬ': 'nu', 'ね': 'ne', 'の': 'no'\n};\n\n// 建立任務清單\nconst tasks = kanaChars.map(kana => ({\n  json: {\n    kana: kana,\n    romaji: romajiMap[kana] || kana,\n    task_type: 'kana_learn',\n    kana_type: 'hiragana'\n  }\n}));\n\nreturn tasks;"
-      },
-      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1264,
-        112
+        -80,
+        144
       ],
-      "id": "a9a959f2-cf01-41c5-8b79-9924fd4ac0c4",
-      "name": "Code - Select New Kana"
-    },
-    {
-      "parameters": {
-        "jsCode": "// 取得待複習的假名\nconst reviewItems = $('Query - Review Items').all();\n\nreturn reviewItems\n  .filter(item => item.json.id) // 過濾空物件\n  .map(item => ({\n    json: {\n      kana: item.json.kana,\n      romaji: item.json.romaji,\n      task_type: 'kana_review',\n      kana_type: item.json.kana_type\n    }\n  }));"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1264,
-        -96
-      ],
-      "id": "9b2473da-ba96-49cc-b9f0-c4939270f558",
-      "name": "Code - Prepare Review Kana"
-    },
-    {
-      "parameters": {
-        "jsCode": "const items = $input.all();\nconst userId = $('Webhook').first().json.body.user_id;\nconst today = new Date().toISOString().split('T')[0];\n\n// Group items by task type to create proper content structure\nconst tasksByType = {};\nitems.forEach(item => {\n  const taskType = item.json.task_type;\n  if (!tasksByType[taskType]) {\n    tasksByType[taskType] = [];\n  }\n  tasksByType[taskType].push(item);\n});\n\n// Build tasks with correct content format\nconst tasks = [];\nfor (const [taskType, taskItems] of Object.entries(tasksByType)) {\n  let content;\n  \n  if (taskType === 'kana_learn') {\n    content = {\n      kana_list: taskItems.map(item => ({\n        kana: item.json.kana,\n        romaji: item.json.romaji\n      })),\n      kana_type: taskItems[0].json.kana_type\n    };\n  } else if (taskType === 'kana_review') {\n    content = {\n      review_kana: taskItems.map(item => ({\n        kana: item.json.kana,\n        romaji: item.json.romaji\n      })),\n      kana_type: taskItems[0].json.kana_type\n    };\n  }\n  \n  tasks.push({\n    json: {\n      user_id: userId,\n      task_type: taskType,\n      content: content,\n      status: 'pending',\n      due_date: today\n    }\n  });\n}\n\nreturn tasks;\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1504,
-        0
-      ],
-      "id": "ed652f32-c658-43f9-92c4-e052ed3bfef3",
-      "name": "Code - Build Tasks"
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        1712,
-        0
-      ],
-      "id": "02c29d9e-ec36-4449-88f8-791bda5ceba5",
-      "name": "Loop - Insert Tasks"
-    },
-    {
-      "parameters": {
-        "tableId": "tasks",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "user_id",
-              "fieldValue": "={{ $json.user_id }}"
-            },
-            {
-              "fieldId": "task_type",
-              "fieldValue": "={{ $json.task_type }}"
-            },
-            {
-              "fieldId": "content",
-              "fieldValue": "={{ $json.content }}"
-            },
-            {
-              "fieldId": "status",
-              "fieldValue": "={{ $json.status }}"
-            },
-            {
-              "fieldId": "due_date",
-              "fieldValue": "={{ $json.due_date }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        1904,
-        96
-      ],
-      "id": "afddd742-b015-47c5-bfc8-91748e13de2b",
-      "name": "Insert - Task",
-      "credentials": {
-        "supabaseApi": {
-          "id": "RculhUeb6L26Iaph",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const tasks = $input.all().map(item => ({\n  id: item.json.id,\n  user_id: item.json.user_id,\n  task_type: item.json.task_type,\n  content: item.json.content,\n  status: item.json.status,\n  due_date: item.json.due_date,\n  skipped: item.json.skipped || false,\n  created_at: item.json.created_at,\n  updated_at: item.json.updated_at\n}));\n\nreturn {\n    success: true,\n    tasks_generated: tasks.length,\n    tasks: tasks,\n    estimated_minutes: tasks.length * 3,\n    message: '今日任務已生成'\n};\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1920,
-        -96
-      ],
-      "id": "957c760a-b47e-418f-973f-6246dfe659bd",
-      "name": "Code - Format Response"
+      "id": "a40ea830-c219-49fb-9978-a509e35b1c9c",
+      "name": "IF - Has No Tasks"
     }
   ],
   "pinData": {},
@@ -285,7 +306,29 @@
       "main": [
         [
           {
-            "node": "Query - User Progress",
+            "node": "Check Existing Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Existing Tasks": {
+      "main": [
+        [
+          {
+            "node": "IF - Has No Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Existing Tasks": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
             "type": "main",
             "index": 0
           }
@@ -296,29 +339,23 @@
       "main": [
         [
           {
-            "node": "Query - Learning Stage",
+            "node": "Query - Next Stage",
             "type": "main",
             "index": 0
-          }
-        ]
-      ]
-    },
-    "Query - Learning Stage": {
-      "main": [
-        [
-          {
-            "node": "Query - Learned Kana",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Query - Learned Kana": {
-      "main": [
-        [
+          },
           {
             "node": "Query - Review Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query - Next Stage": {
+      "main": [
+        [
+          {
+            "node": "Code - Select New Kana",
             "type": "main",
             "index": 0
           }
@@ -329,25 +366,7 @@
       "main": [
         [
           {
-            "node": "IF - Has Review Items",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF - Has Review Items": {
-      "main": [
-        [
-          {
-            "node": "Code - Prepare Review Kana",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Code - Select New Kana",
+            "node": "Code - Prepare Review",
             "type": "main",
             "index": 0
           }
@@ -361,6 +380,27 @@
             "node": "Code - Build Tasks",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Code - Build Progress Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Prepare Review": {
+      "main": [
+        [
+          {
+            "node": "Code - Build Tasks",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update Review Timestamps",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -369,58 +409,80 @@
       "main": [
         [
           {
-            "node": "Loop - Insert Tasks",
+            "node": "Insert Tasks",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Loop - Insert Tasks": {
+    "Insert Tasks": {
       "main": [
         [
           {
-            "node": "Code - Format Response",
+            "node": "Query All Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Build Progress Records": {
+      "main": [
+        [
+          {
+            "node": "Insert Kana Progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Kana Progress": {
+      "main": [
+        [
+          {
+            "node": "Query All Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Review Timestamps": {
+      "main": [
+        [
+          {
+            "node": "Query All Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query All Tasks": {
+      "main": [
+        [
+          {
+            "node": "Format Existing Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has No Tasks": {
+      "main": [
+        [
+          {
+            "node": "Query - User Progress",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Insert - Task",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Insert - Task": {
-      "main": [
-        [
-          {
-            "node": "Loop - Insert Tasks",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code - Format Response": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code - Prepare Review Kana": {
-      "main": [
-        [
-          {
-            "node": "Code - Build Tasks",
+            "node": "Format Existing Tasks",
             "type": "main",
             "index": 0
           }
@@ -433,7 +495,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "62b3a4a5-0607-49a7-a468-389a311482a0",
+  "versionId": "8c6479b1-c141-4c30-a9ac-cbe2c5260c61",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "bd9282013e8dda099718f0b96696ffc2c8915d0a6f6124fc502a7eff313b0320"
