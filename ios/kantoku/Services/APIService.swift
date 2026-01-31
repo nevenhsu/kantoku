@@ -212,12 +212,12 @@ struct TaskGenerationResponse: Codable {
     }
 }
 
-// Task model from n8n response (content is already parsed as object)
+// Task model from n8n response (content is a JSON string, not an object)
 struct TaskResponseModel: Codable {
     let id: UUID
     let userId: UUID
     let taskType: TaskType
-    let content: TaskContent
+    let contentString: String  // Content is a JSON string in n8n response
     let status: TaskStatus
     let dueDate: String  // Date as string from n8n
     let skipped: Bool
@@ -228,7 +228,7 @@ struct TaskResponseModel: Codable {
         case id
         case userId = "user_id"
         case taskType = "task_type"
-        case content
+        case contentString = "content"
         case status
         case dueDate = "due_date"
         case skipped
@@ -248,6 +248,15 @@ struct TaskResponseModel: Codable {
         let dueDateFormatter = DateFormatter()
         dueDateFormatter.dateFormat = "yyyy-MM-dd"
         let due = dueDateFormatter.date(from: dueDate) ?? Date()
+        
+        // Parse content string to TaskContent
+        print("📦 Parsing content string: \(contentString)")
+        guard let contentData = contentString.data(using: .utf8) else {
+            throw NSError(domain: "APIService", code: -1,
+                        userInfo: [NSLocalizedDescriptionKey: "Cannot convert content string to data"])
+        }
+        
+        let content = try JSONDecoder().decode(TaskContent.self, from: contentData)
         
         return TaskModel(
             id: id,

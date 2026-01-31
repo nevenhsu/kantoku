@@ -59,8 +59,14 @@ struct TaskCard: View {
     private func taskTypeDescription(for task: TaskModel) -> String {
         switch task.taskType {
         case .kanaLearn:
+            if case .kanaLearn(let content) = task.content {
+                return "\(content.kanaList.count) 個假名"
+            }
             return "學習新的假名"
         case .kanaReview:
+            if case .kanaReview(let content) = task.content {
+                return "\(content.reviewKana.count) 個假名"
+            }
             return "複習已學假名"
         case .vocabulary:
             return "學習新單字"
@@ -138,6 +144,112 @@ struct EmptyTaskCard: View {
         .background(Constants.Colors.cardBackground)
         .cornerRadius(Constants.CornerRadius.medium)
         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+    }
+}
+
+// MARK: - Grouped Task Card (練習/複習分組卡片)
+
+/// 分組任務卡片（用於首頁顯示練習或複習）
+struct GroupedTaskCard: View {
+    let groupedTask: GroupedTask
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: Constants.Spacing.sm) {
+                // Header: Icon + Type + Progress
+                HStack {
+                    Image(systemName: groupedTask.groupType.iconName)
+                        .font(.title2)
+                        .foregroundColor(Constants.Colors.primary)
+                        .frame(width: 36, height: 36)
+                        .background(Constants.Colors.primary.opacity(0.1))
+                        .clipShape(Circle())
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(groupedTask.groupType.displayName)
+                            .font(Constants.Typography.h3)
+                            .foregroundColor(Constants.Colors.primaryText)
+                        
+                        Text(taskDescription)
+                            .font(Constants.Typography.caption)
+                            .foregroundColor(Constants.Colors.secondaryText)
+                            .lineLimit(1)
+                    }
+                    
+                    Spacer()
+                    
+                    // 進度指示
+                    progressBadge
+                }
+                
+                Divider()
+                
+                // 假名預覽
+                kanaPreview
+                    .font(Constants.Typography.body)
+                    .foregroundColor(Constants.Colors.primaryText)
+            }
+            .padding(Constants.Spacing.md)
+            .background(Constants.Colors.cardBackground)
+            .cornerRadius(Constants.CornerRadius.medium)
+            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+        }
+        .buttonStyle(CardButtonStyle())
+    }
+    
+    private var taskDescription: String {
+        let kanaCount = groupedTask.totalKanaCount
+        let kanaTypeStr = groupedTask.kanaType == .katakana ? "片假名" : "平假名"
+        return "\(kanaCount) 個\(kanaTypeStr)"
+    }
+    
+    private var progressBadge: some View {
+        Group {
+            if groupedTask.isCompleted {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                    Text("完成")
+                }
+                .font(Constants.Typography.caption)
+                .foregroundColor(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Constants.Colors.green)
+                .cornerRadius(Constants.CornerRadius.small)
+            } else {
+                HStack(spacing: 4) {
+                    Image(systemName: "clock")
+                    Text("待完成")
+                }
+                .font(Constants.Typography.caption)
+                .foregroundColor(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(.orange)
+                .cornerRadius(Constants.CornerRadius.small)
+            }
+        }
+    }
+    
+    private var kanaPreview: some View {
+        let kanaItems = groupedTask.allKana
+        let displayKana = kanaItems.prefix(8)
+        let kanaString = displayKana.map { $0.kana }.joined(separator: "  ")
+        let moreCount = kanaItems.count - displayKana.count
+        
+        return HStack {
+            Text(kanaString)
+                .font(.system(size: 18, weight: .medium))
+            
+            if moreCount > 0 {
+                Text("...(+\(moreCount))")
+                    .font(Constants.Typography.caption)
+                    .foregroundColor(Constants.Colors.secondaryText)
+            }
+            
+            Spacer()
+        }
     }
 }
 

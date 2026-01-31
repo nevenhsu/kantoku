@@ -64,12 +64,6 @@ struct LearningStats: Codable, Identifiable {
     }
 }
 
-/// 假名類型
-enum KanaType: String, Codable {
-    case hiragana
-    case katakana
-}
-
 /// 學習狀態
 enum LearningStatus: String, Codable {
     case notStarted = "not_started"

@@ -19,6 +19,7 @@ class TaskViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var tasks: [TaskModel] = []
     @Published var todayTasks: [TaskModel] = []
+    @Published var groupedTasks: [GroupedTask] = []  // 分組任務（練習/複習）
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -86,11 +87,23 @@ class TaskViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            // Load today's tasks
+            // Load today's tasks from database
             try await loadTodayTasks()
             
             // Load statistics
             try await loadStatistics()
+            
+            // Check if we need to generate tasks for today
+            // Check if any tasks were created today (regardless of status)
+            // This prevents re-generating tasks when user completes all tasks
+            let hasTasksToday = try await hasGeneratedTasksToday()
+            
+            if !hasTasksToday {
+                print("📋 No tasks generated today, calling n8n to generate new tasks...")
+                await generateDailyTasks()
+            } else {
+                print("✅ Tasks already generated for today")
+            }
             
             isLoading = false
         } catch {
@@ -156,6 +169,57 @@ class TaskViewModel: ObservableObject {
         
         print("✅ Loaded \(tasks.count) today's tasks")
         self.todayTasks = tasks
+        
+        // 更新分組任務
+        updateGroupedTasks()
+    }
+    
+    /// 檢查今天是否已經生成過任務（不論任務狀態）
+    func hasGeneratedTasksToday() async throws -> Bool {
+        guard let userId = try await supabaseService.currentUserId else {
+            throw TaskError.userNotAuthenticated
+        }
+        
+        // Get today's date range
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let todayStr = dateFormatter.string(from: today)
+        
+        // Check if there are any tasks created today (regardless of status)
+        print("🔍 Checking if tasks were generated today: \(todayStr)")
+        let count = try await supabaseService.client
+            .from("tasks")
+            .select("id", head: true, count: .exact)
+            .eq("user_id", value: userId)
+            .gte("created_at", value: "\(todayStr)T00:00:00Z")
+            .execute()
+            .count ?? 0
+        
+        print("✅ Found \(count) tasks created today")
+        return count > 0
+    }
+    
+    /// 將任務分組為練習和複習
+    private func updateGroupedTasks() {
+        var groups: [GroupedTask] = []
+        
+        // 分組練習任務 (kana_learn)
+        let learnTasks = todayTasks.filter { $0.taskType == .kanaLearn }
+        if !learnTasks.isEmpty {
+            groups.append(GroupedTask(groupType: .learn, tasks: learnTasks))
+        }
+        
+        // 分組複習任務 (kana_review)
+        let reviewTasks = todayTasks.filter { $0.taskType == .kanaReview }
+        if !reviewTasks.isEmpty {
+            groups.append(GroupedTask(groupType: .review, tasks: reviewTasks))
+        }
+        
+        self.groupedTasks = groups
+        print("✅ Grouped tasks: \(groups.count) groups (learn: \(learnTasks.count), review: \(reviewTasks.count))")
     }
     
     /// 載入統計資料

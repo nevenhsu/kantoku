@@ -250,6 +250,12 @@ enum TaskContent: Codable {
     }
 }
 
+/// 假名類型
+enum KanaType: String, Codable {
+    case hiragana
+    case katakana
+}
+
 /// 假名學習內容
 struct KanaLearnContent: Codable {
     let kanaList: [KanaItem]
@@ -321,6 +327,97 @@ struct VocabularyWord: Codable, Identifiable {
         case level
         case exampleSentence = "example_sentence"
         case exampleSentenceMeaning = "example_sentence_meaning"
+    }
+}
+
+// MARK: - Grouped Task for Dashboard
+
+/// 任務分組類型
+enum TaskGroupType: String {
+    case learn = "learn"
+    case review = "review"
+    
+    var displayName: String {
+        switch self {
+        case .learn: return "今日練習"
+        case .review: return "今日複習"
+        }
+    }
+    
+    var iconName: String {
+        switch self {
+        case .learn: return "text.book.closed"
+        case .review: return "arrow.clockwise"
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .learn: return "學習新的假名"
+        case .review: return "複習已學假名"
+        }
+    }
+}
+
+/// 分組任務模型（用於首頁顯示）
+struct GroupedTask: Identifiable {
+    let id = UUID()
+    let groupType: TaskGroupType
+    let tasks: [TaskModel]
+    
+    /// 總假名數量
+    var totalKanaCount: Int {
+        tasks.reduce(0) { count, task in
+            switch task.content {
+            case .kanaLearn(let content):
+                return count + content.kanaList.count
+            case .kanaReview(let content):
+                return count + content.reviewKana.count
+            default:
+                return count
+            }
+        }
+    }
+    
+    /// 所有假名列表
+    var allKana: [KanaItem] {
+        tasks.flatMap { task -> [KanaItem] in
+            switch task.content {
+            case .kanaLearn(let content):
+                return content.kanaList
+            case .kanaReview(let content):
+                return content.reviewKana
+            default:
+                return []
+            }
+        }
+    }
+    
+    /// 假名類型
+    var kanaType: KanaType? {
+        for task in tasks {
+            switch task.content {
+            case .kanaLearn(let content):
+                return content.kanaType
+            case .kanaReview(let content):
+                return content.kanaType
+            default:
+                continue
+            }
+        }
+        return nil
+    }
+    
+    /// 是否所有任務都已完成
+    var isCompleted: Bool {
+        tasks.allSatisfy { $0.status == .passed }
+    }
+    
+    /// 完成進度 (0.0 - 1.0)
+    var progress: Double {
+        guard !tasks.isEmpty else { return 0 }
+        let completedCount = tasks.filter { $0.status == .passed }.count
+        return Double(completedCount) / Double(tasks.count)
     }
 }
 

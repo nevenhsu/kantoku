@@ -142,7 +142,7 @@ struct DashboardView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .padding(Constants.Spacing.xl)
-            } else if viewModel.todayTasks.isEmpty {
+            } else if viewModel.groupedTasks.isEmpty {
                 EmptyTaskCard(
                     hasAnyTasks: viewModel.totalTasksCount > 0,
                     onGenerateTasks: {
@@ -152,9 +152,10 @@ struct DashboardView: View {
                     }
                 )
             } else {
-                ForEach(viewModel.todayTasks) { task in
-                    TaskCard(task: task) {
-                        // Navigate to task detail
+                // 顯示分組任務卡片（練習和複習各一張）
+                ForEach(viewModel.groupedTasks) { groupedTask in
+                    GroupedTaskCard(groupedTask: groupedTask) {
+                        // Navigate to task detail based on group type
                     }
                 }
             }
